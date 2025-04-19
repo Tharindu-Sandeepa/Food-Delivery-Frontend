@@ -6,7 +6,7 @@ export default function UserManagementPage() {
   return (
     <div className="space-y-6">
       <DashboardHeader title="User Management" description="Manage platform users and their permissions" />
-      <UserManagement users={users} />
+      <UserManagement users={users as any} />
     </div>
   )
 }

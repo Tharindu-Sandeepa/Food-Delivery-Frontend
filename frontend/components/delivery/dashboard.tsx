@@ -16,17 +16,20 @@ interface OrderItem {
   quantity: number
 }
 
-interface Order {
-  id: string
-  restaurantId: string
-  restaurantName: string
-  items: OrderItem[]
-  status: "pending" | "preparing" | "delivering" | "completed" | "cancelled"
-  total: number
-  createdAt: string
-  deliveryAddress: string
-  deliveryPersonId?: string
-  restaurantAddress?: string
+export interface Order {
+  id: string;
+  restaurantId: string;
+  restaurantName: string;
+  deliveryAddress: string;
+  items: OrderItem[];
+  status: "pending" | "assigned" | "delivering" | "completed" | "cancelled" | "preparing" | "delivered";
+  total: number;
+  createdAt: string;
+  paymentMethod: string; // Added paymentMethod property
+  deliveryId?: string;
+  driverId?: string;
+  startLocation?: { lat: number; lng: number };
+  endLocation?: { lat: number; lng: number };
 }
 
 interface DeliveryDashboardProps {
@@ -34,15 +37,13 @@ interface DeliveryDashboardProps {
 }
 
 export function DeliveryDashboard({ orders: initialOrders }: DeliveryDashboardProps) {
-  const [orders, setOrders] = useState(
-    initialOrders.map((order) => ({
-      ...order,
-      restaurantAddress: "123 Restaurant St, Food City, FC 12345", // Mock restaurant address
-    })),
-  )
+  const [orders, setOrders] = useState(initialOrders)
 
-  const preparingOrders = orders.filter((order) => order.status === "preparing")
+  console.log("Orders:", orders)
+
+  const preparingOrders = orders.filter((order) => order.status === "assigned")
   const deliveringOrders = orders.filter((order) => order.status === "delivering")
+  const deliveredOrders = orders.filter((order) => order.status === "delivered")
 
   const updateOrderStatus = (orderId: string, status: Order["status"]) => {
     setOrders((prev) => prev.map((order) => (order.id === orderId ? { ...order, status } : order)))
@@ -82,7 +83,7 @@ export function DeliveryDashboard({ orders: initialOrders }: DeliveryDashboardPr
               <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground" />
               <div>
                 <p className="text-sm font-medium">Pickup from:</p>
-                <p className="text-sm text-muted-foreground">{order.restaurantAddress}</p>
+                <p className="text-sm text-muted-foreground">{order.startLocation?.lat}</p>
               </div>
             </div>
 
@@ -119,6 +120,7 @@ export function DeliveryDashboard({ orders: initialOrders }: DeliveryDashboardPr
         <TabsList>
           <TabsTrigger value="pickup">Ready for Pickup ({preparingOrders.length})</TabsTrigger>
           <TabsTrigger value="delivering">Delivering ({deliveringOrders.length})</TabsTrigger>
+          <TabsTrigger value="delivered">Completed ({deliveredOrders.length})</TabsTrigger>
         </TabsList>
         <TabsContent value="pickup" className="mt-6">
           {preparingOrders.length === 0 ? (
@@ -132,6 +134,13 @@ export function DeliveryDashboard({ orders: initialOrders }: DeliveryDashboardPr
             <p className="text-center text-muted-foreground">No orders being delivered</p>
           ) : (
             deliveringOrders.map((order) => <OrderCard key={order.id} order={order} />)
+          )}
+        </TabsContent>
+        <TabsContent value="delivered" className="mt-6">
+          {deliveringOrders.length === 0 ? (
+            <p className="text-center text-muted-foreground">No orders being completed</p>
+          ) : (
+            deliveredOrders.map((order) => <OrderCard key={order.id} order={order} />)
           )}
         </TabsContent>
       </Tabs>

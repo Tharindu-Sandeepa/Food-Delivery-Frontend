@@ -1,35 +1,22 @@
 "use client"
 
 import Image from "next/image"
-import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Minus, Plus, Trash2 } from "lucide-react"
+import { useAppSelector, useAppDispatch } from "@/lib/store/hooks"
+import { selectCartItems, removeItem, updateQuantity } from "@/lib/store/cartSlice"
 
-interface CartItem {
-  id: string
-  menuItemId: string
-  name: string
-  price: number
-  quantity: number
-  image: string
-}
+export function CartList() {
+  const items = useAppSelector(selectCartItems)
+  const dispatch = useAppDispatch()
 
-interface CartListProps {
-  items: CartItem[]
-}
-
-export function CartList({ items: initialItems }: CartListProps) {
-  const [items, setItems] = useState(initialItems)
-
-  const updateQuantity = (id: string, change: number) => {
-    setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, quantity: Math.max(1, item.quantity + change) } : item)),
-    )
+  const handleUpdateQuantity = (id: string, change: number) => {
+    dispatch(updateQuantity({ id, change }))
   }
 
-  const removeItem = (id: string) => {
-    setItems((prev) => prev.filter((item) => item.id !== id))
+  const handleRemoveItem = (id: string) => {
+    dispatch(removeItem(id))
   }
 
   if (items.length === 0) {
@@ -67,7 +54,7 @@ export function CartList({ items: initialItems }: CartListProps) {
                       variant="outline"
                       size="icon"
                       className="h-8 w-8 rounded-full"
-                      onClick={() => updateQuantity(item.id, -1)}
+                      onClick={() => handleUpdateQuantity(item.id, -1)}
                     >
                       <Minus className="h-3 w-3" />
                     </Button>
@@ -76,7 +63,7 @@ export function CartList({ items: initialItems }: CartListProps) {
                       variant="outline"
                       size="icon"
                       className="h-8 w-8 rounded-full"
-                      onClick={() => updateQuantity(item.id, 1)}
+                      onClick={() => handleUpdateQuantity(item.id, 1)}
                     >
                       <Plus className="h-3 w-3" />
                     </Button>
@@ -86,8 +73,7 @@ export function CartList({ items: initialItems }: CartListProps) {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-destructive"
-                    e="h-8 w-8 text-destructive"
-                    onClick={() => removeItem(item.id)}
+                    onClick={() => handleRemoveItem(item.id)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

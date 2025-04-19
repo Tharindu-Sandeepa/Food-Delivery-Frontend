@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { useAuth } from "@/hooks/useAuth"
 import {
   Home,
   ShoppingCart,
@@ -33,6 +34,7 @@ export function Sidebar({ role }: SidebarProps) {
   const pathname = usePathname()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const { logout, user } = useAuth()
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -109,11 +111,9 @@ export function Sidebar({ role }: SidebarProps) {
               )
             })}
             <div className="mt-auto pt-4 border-t mt-4">
-              <Button variant="outline" className="w-full justify-start" asChild>
-                <Link href="/login">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Logout
-                </Link>
+              <Button variant="outline" className="w-full justify-start" onClick={logout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
               </Button>
             </div>
           </div>
@@ -175,11 +175,9 @@ export function Sidebar({ role }: SidebarProps) {
             </Button>
           )}
           {!isCollapsed && (
-            <Button variant="outline" className="w-full justify-start" asChild>
-              <Link href="/login">
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-              </Link>
+            <Button variant="outline" className="w-full justify-start" onClick={logout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
             </Button>
           )}
         </div>
