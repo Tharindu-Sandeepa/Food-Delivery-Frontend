@@ -1,20 +1,22 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Search, Edit, Trash2, Plus } from "lucide-react"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { Search, Edit, Trash2, Plus, MapPin } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
+import dynamic from "next/dynamic"
+
+// Dynamically import the Map component to avoid SSR issues
+const MapWithNoSSR = dynamic(() => import("@/components/map").then((mod) => mod.Map), {
+  ssr: false,
+  loading: () => <div className="h-full w-full bg-gray-100 flex items-center justify-center">Loading map...</div>
+})
 
 interface Location {
   longitude: number
@@ -48,6 +50,9 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [currentRestaurant, setCurrentRestaurant] = useState<Restaurant | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [addressSearch, setAddressSearch] = useState("")
+  const [mapKey, setMapKey] = useState(0) // Used to force remount of Map component
+  const addressInputRef = useRef<HTMLInputElement>(null)
 
   // Form state
   const [formData, setFormData] = useState({
@@ -68,13 +73,8 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
   })
 
   useEffect(() => {
-    console.log("Initial restaurants received:", initialRestaurants)
     setRestaurants(initialRestaurants)
   }, [initialRestaurants])
-
-  useEffect(() => {
-    console.log("Current restaurants state:", restaurants)
-  }, [restaurants])
 
   const filteredRestaurants = restaurants.filter(
     (restaurant) =>
@@ -112,6 +112,8 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
       location: restaurant.location,
       isAvailable: restaurant.isAvailable
     })
+    setAddressSearch(restaurant.address)
+    setMapKey(prev => prev + 1) // Force remount of Map component
     setIsDialogOpen(true)
   }
 
@@ -133,11 +135,20 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
       },
       isAvailable: true
     })
+    setAddressSearch("")
+    setMapKey(prev => prev + 1) // Force remount of Map component
     setIsDialogOpen(true)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validate location
+    if (formData.location.latitude === 0 && formData.location.longitude === 0) {
+      toast.error("Please select a location on the map")
+      return
+    }
+    
     setIsSubmitting(true)
     
     try {
@@ -207,15 +218,60 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
     }))
   }
 
-  const handleLocationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
+  const handleAddressSearch = async () => {
+    if (!addressSearch.trim()) return
+    
+    try {
+      // Use a geocoding service (here we're using Nominatim as an example)
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressSearch)}`
+      )
+      
+      if (!response.ok) throw new Error("Failed to geocode address")
+      
+      const results = await response.json()
+      if (results.length > 0) {
+        const firstResult = results[0]
+        setFormData(prev => ({
+          ...prev,
+          address: firstResult.display_name,
+          location: {
+            latitude: parseFloat(firstResult.lat),
+            longitude: parseFloat(firstResult.lon)
+          }
+        }))
+        toast.success("Location found on map")
+      } else {
+        toast.warning("No results found for this address")
+      }
+    } catch (error) {
+      console.error("Error geocoding address:", error)
+      toast.error("Failed to find location")
+    }
+  }
+
+  const handleMapClick = (lat: number, lng: number) => {
     setFormData(prev => ({
       ...prev,
       location: {
-        ...prev.location,
-        [name]: parseFloat(value)
+        latitude: lat,
+        longitude: lng
       }
     }))
+    
+    // Reverse geocode to get address
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.display_name) {
+          setFormData(prev => ({
+            ...prev,
+            address: data.display_name
+          }))
+          setAddressSearch(data.display_name)
+        }
+      })
+      .catch(err => console.error("Reverse geocoding error:", err))
   }
 
   return (
@@ -267,7 +323,12 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
                       </div>
                     </TableCell>
                     <TableCell>{restaurant.cuisineType}</TableCell>
-                    <TableCell>{restaurant.address}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <span className="line-clamp-1">{restaurant.address}</span>
+                      </div>
+                    </TableCell>
                     <TableCell>
                       {restaurant.openingHours ? 
                         `${restaurant.openingHours.open} - ${restaurant.openingHours.close}` :
@@ -315,7 +376,7 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
 
       {/* Add/Edit Restaurant Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-2xl overflow-y-auto max-h-screen">
+        <DialogContent className="sm:max-w-3xl overflow-y-auto max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>
               {currentRestaurant ? "Edit Restaurant" : "Add New Restaurant"}
@@ -324,7 +385,7 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Restaurant Name</Label>
+                <Label htmlFor="name">Restaurant Name *</Label>
                 <Input
                   id="name"
                   name="name"
@@ -334,7 +395,7 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="cuisineType">Cuisine Type</Label>
+                <Label htmlFor="cuisineType">Cuisine Type *</Label>
                 <Input
                   id="cuisineType"
                   name="cuisineType"
@@ -344,17 +405,7 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
-                <Input
-                  id="address"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="imageUrl">Image URL</Label>
+                <Label htmlFor="imageUrl">Image URL *</Label>
                 <Input
                   id="imageUrl"
                   name="imageUrl"
@@ -364,7 +415,7 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="deliveryZones">Delivery Zones (comma separated)</Label>
+                <Label htmlFor="deliveryZones">Delivery Zones (comma separated) *</Label>
                 <Input
                   id="deliveryZones"
                   name="deliveryZones"
@@ -372,6 +423,33 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
                   onChange={handleInputChange}
                   required
                 />
+              </div>
+              <div className="space-y-2">
+                <Label>Opening Hours *</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor="open" className="text-xs">Open</Label>
+                    <Input
+                      id="open"
+                      name="open"
+                      type="time"
+                      value={formData.openingHours.open}
+                      onChange={handleOpeningHoursChange}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="close" className="text-xs">Close</Label>
+                    <Input
+                      id="close"
+                      name="close"
+                      type="time"
+                      value={formData.openingHours.close}
+                      onChange={handleOpeningHoursChange}
+                      required
+                    />
+                  </div>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Availability</Label>
@@ -388,54 +466,87 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
                   </Label>
                 </div>
               </div>
+            </div>
+
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="open">Opening Time</Label>
-                <Input
-                  id="open"
-                  name="open"
-                  type="time"
-                  value={formData.openingHours.open}
-                  onChange={handleOpeningHoursChange}
-                  required
+                <Label htmlFor="address">Location *</Label>
+                <div className="flex gap-2">
+                  <Input
+                    ref={addressInputRef}
+                    id="address-search"
+                    placeholder="Search for an address..."
+                    value={addressSearch}
+                    onChange={(e) => setAddressSearch(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddressSearch()}
+                  />
+                  <Button 
+                    type="button" 
+                    variant="secondary"
+                    onClick={handleAddressSearch}
+                  >
+                    <MapPin className="h-4 w-4 mr-2" />
+                    Search
+                  </Button>
+                </div>
+              </div>
+
+              <div className="h-64 rounded-md overflow-hidden border relative">
+                <MapWithNoSSR
+                  key={mapKey}
+                  center={[
+                    formData.location.latitude || 0,
+                    formData.location.longitude || 0
+                  ]}
+                  zoom={formData.location.latitude ? 15 : 2}
+                  onClick={handleMapClick}
+                  markerPosition={
+                    formData.location.latitude && formData.location.longitude ? [
+                      formData.location.latitude,
+                      formData.location.longitude
+                    ] : null
+                  }
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="close">Closing Time</Label>
-                <Input
-                  id="close"
-                  name="close"
-                  type="time"
-                  value={formData.openingHours.close}
-                  onChange={handleOpeningHoursChange}
-                  required
-                />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label htmlFor="latitude">Latitude</Label>
+                  <Input
+                    id="latitude"
+                    name="latitude"
+                    type="number"
+                    step="0.000001"
+                    value={formData.location.latitude}
+                    readOnly
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="longitude">Longitude</Label>
+                  <Input
+                    id="longitude"
+                    name="longitude"
+                    type="number"
+                    step="0.000001"
+                    value={formData.location.longitude}
+                    readOnly
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="latitude">Latitude</Label>
+
+              <div className="space-y-1">
+                <Label htmlFor="address">Full Address</Label>
                 <Input
-                  id="latitude"
-                  name="latitude"
-                  type="number"
-                  step="0.000001"
-                  value={formData.location.latitude}
-                  onChange={handleLocationChange}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="longitude">Longitude</Label>
-                <Input
-                  id="longitude"
-                  name="longitude"
-                  type="number"
-                  step="0.000001"
-                  value={formData.location.longitude}
-                  onChange={handleLocationChange}
+                  id="address"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleInputChange}
                   required
                 />
               </div>
             </div>
-            <div className="flex justify-end gap-2">
+
+            <div className="flex justify-end gap-2 pt-4">
               <Button
                 type="button"
                 variant="outline"
