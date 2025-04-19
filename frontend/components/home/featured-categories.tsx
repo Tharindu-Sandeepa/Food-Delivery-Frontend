@@ -53,7 +53,7 @@ export function FeaturedCategories() {
     <section className="py-10" id="categories">
       <div className="container mx-auto px-4">
         <div className="flex flex-col items-center mb-10 text-center">
-          <h2 className="text-3xl font-bold mb-2">Browse by Category</h2>
+          <h2 className="text-3xl font-bold mb-2">Browse by Catejjjjgory</h2>
           <p className="text-muted-foreground max-w-2xl">Explore restaurants by your favorite food categories</p>
         </div>
 
