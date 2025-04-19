@@ -6,7 +6,7 @@ interface RestaurantHeaderProps {
   restaurant: {
     id: string
     name: string
-    image: string
+    imageUrl: string
     cuisine: string
     rating: number
     deliveryTime: string
@@ -18,7 +18,7 @@ export function RestaurantHeader({ restaurant }: RestaurantHeaderProps) {
   return (
     <div className="space-y-4">
       <div className="relative h-48 md:h-64 rounded-lg overflow-hidden">
-        <Image src={restaurant.image || "/placeholder.svg"} alt={restaurant.name} fill className="object-cover" />
+        <Image src={restaurant.imageUrl || "/placeholder.svg"} alt={restaurant.name} fill className="object-cover" />
       </div>
 
       <div className="space-y-2">
