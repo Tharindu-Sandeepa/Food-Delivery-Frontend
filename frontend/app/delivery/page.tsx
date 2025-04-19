@@ -4,35 +4,102 @@ import { useEffect, useState } from "react";
 import { DeliveryDashboard } from "@/components/delivery/dashboard";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { useAuth } from "@/hooks/useAuth";
-import { getDeliveriesByUser } from "@/lib/delivery-api";
+import { getDeliveriesByUser, getOrderById } from "@/lib/delivery-api";
 
+export interface OrderItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
 
+export interface Order {
+  id: string;
+  restaurantId: string;
+  restaurantName: string;
+  deliveryAddress: string;
+  items: OrderItem[];
+  status: "pending" | "assigned" | "delivering" | "completed" | "cancelled";
+  total: number;
+  createdAt: string;
+  paymentMethod: string;
+  deliveryId?: string;
+  driverId?: string;
+  startLocation?: { lat: number; lng: number };
+  endLocation?: { lat: number; lng: number };
+}
+
+export interface Delivery {
+  deliveryId: string;
+  orderId: string;
+  driverId: string;
+  driverName: string;
+  status: string;
+  startLocation: { lat: number; lng: number };
+  endLocation: { lat: number; lng: number };
+}
 
 export default function DeliveryPage() {
-  const { user, token } = useAuth();
-  const [delivery, setDelivery] = useState([]);
+  const { user } = useAuth();
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [orders, setOrders] = useState([]);
-  const [deliveryData, setDeliveryData] = useState<any>([]);
+  const [error, setError] = useState<string | null>(null);
   const deliveryPersonId = user?.id;
 
-  console.log("Delivery Person ID:", delivery);
-
   useEffect(() => {
-    if (deliveryPersonId) {
-      getDeliveriesByUser(deliveryPersonId)
-        .then((data) => {
-          setDelivery(data);
-        })
-        .catch((err) => {
-          console.error("Failed to fetch deliveries:", err);
-        });
-    }
+    const fetchData = async () => {
+      if (!deliveryPersonId) return;
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Get deliveries data (could be array or single object)
+        const deliveries = await getDeliveriesByUser(deliveryPersonId);
+
+        // Normalize to array - handle both single object and array cases
+        const deliveriesArray = Array.isArray(deliveries)
+          ? deliveries
+          : deliveries
+          ? [deliveries]
+          : [];
+
+        if (deliveriesArray.length === 0) {
+          setOrders([]);
+          return;
+        }
+
+        const ordersData = await Promise.all(
+          deliveriesArray.map(async (delivery: Delivery) => {
+            const order = await getOrderById(delivery.orderId);
+            return {
+              ...order,
+              status: delivery.status,
+              deliveryId: delivery.deliveryId,
+              driverId: delivery.driverId,
+              startLocation: delivery.startLocation,
+              endLocation: delivery.endLocation,
+            };
+          })
+        );
+
+        setOrders(ordersData);
+      } catch (err) {
+        console.error("Failed to fetch deliveries:", err);
+        setError(
+          err instanceof Error ? err.message : "Failed to load deliveries"
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, [deliveryPersonId]);
 
-  
-
-
+  if (error) {
+    return <div className="text-red-500 p-4">Error: {error}</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -40,7 +107,12 @@ export default function DeliveryPage() {
         title="Delivery Dashboard"
         description="Manage your active deliveries"
       />
-      <DeliveryDashboard orders={orders} />
+
+      {loading ? (
+        <div className="text-center">Loading...</div>
+      ) : (
+        <DeliveryDashboard orders={orders as any} />
+      )}
     </div>
   );
 }

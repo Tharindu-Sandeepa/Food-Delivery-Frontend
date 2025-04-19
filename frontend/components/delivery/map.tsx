@@ -1,60 +1,158 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { MapContainer, TileLayer, Polyline } from "react-leaflet"
-import { LeafletTrackingMarker } from "react-leaflet-tracking-marker"
-import L from "leaflet"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import "leaflet/dist/leaflet.css"
+import { useEffect, useState, useRef } from "react";
+import { MapContainer, TileLayer, Polyline, useMap } from "react-leaflet";
+import { LeafletTrackingMarker } from "react-leaflet-tracking-marker";
+import L from "leaflet";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import "leaflet/dist/leaflet.css";
+import { updateOrderStatus } from "@/lib/delivery-api";
 
 const icon = L.icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconSize: [40, 40],
-  iconAnchor: [20, 40],
-  popupAnchor: [0, -30]
-})
+  iconUrl: "/images/delivery-bike.png",
+  iconSize: [80, 80], // Extra large size
+  iconAnchor: [40, 80], // Anchor at center-bottom
+  popupAnchor: [0, -80], // Popup appears above marker
+  className: "moving-bike-icon", // Optional for additional CSS styling
+});
 
 interface DeliveryMapProps {
   order: {
-    id: string
-    restaurantName: string
-    restaurantAddress?: string
-    deliveryAddress: string
-    status: string
-    items: any[]
-    startLocation?: { lat: number, lng: number }
-    endLocation?: { lat: number, lng: number }
-  }
+    id: string;
+    deliveryId: string;
+    restaurantName: string;
+    restaurantAddress?: string;
+    deliveryAddress: string;
+    status: string;
+    items: any[];
+    startLocation?: { lat: number; lng: number };
+    endLocation?: { lat: number; lng: number };
+  };
+}
+
+function MapUpdater({ center }: { center: [number, number] }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(center, map.getZoom());
+  }, [center, map]);
+  return null;
 }
 
 export function DeliveryMap({ order }: DeliveryMapProps) {
-  const [route, setRoute] = useState<[number, number][]>([])
-  const [pos, setPos] = useState<[number, number]>([0, 0])
-  const [prev, setPrev] = useState<[number, number]>([0, 0])
-  const [index, setIndex] = useState(0)
-  const [delivered, setDelivered] = useState(false)
+  const [route, setRoute] = useState<[number, number][]>([]);
+  const [pos, setPos] = useState<[number, number]>([0, 0]);
+  const [prev, setPrev] = useState<[number, number]>([0, 0]);
+  const [index, setIndex] = useState(0);
+  const [delivered, setDelivered] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isStarted, setIsStarted] = useState(false); // New state for tracking if delivery has started
+  const animationRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const start = order.startLocation || { lat: 6.9271, lng: 79.8612 }
-    const end = order.endLocation || { lat: 6.9281, lng: 79.8622 }
-    const points = generateMockRoute(start, end, 20)
-    setRoute(points)
-    setPos(points[0])
-    setPrev(points[0])
-  }, [order])
+    const fetchRoute = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (index < route.length - 1) {
-        const next = route[index + 1]
-        setPrev(pos)
-        setPos(next)
-        setIndex((i) => i + 1)
+        const start = order.startLocation || { lat: 6.9271, lng: 79.8612 };
+        const end = order.endLocation || { lat: 6.9281, lng: 79.8622 };
+
+        // Get actual route from OpenRouteService API
+        const response = await fetch(
+          `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${process.env.NEXT_PUBLIC_ORS_API_KEY}&start=${start.lng},${start.lat}&end=${end.lng},${end.lat}`
+        );
+
+        if (!response.ok) throw new Error("Failed to fetch route");
+
+        const data = await response.json();
+        const coordinates = data.features[0].geometry.coordinates;
+
+        // Convert [lng, lat] to [lat, lng] format
+        const points = coordinates.map((coord: [number, number]) => [
+          coord[1],
+          coord[0],
+        ]) as [number, number][];
+
+        setRoute(points);
+        setPos(points[0]);
+        setPrev(points[0]);
+      } catch (err) {
+        console.error("Route fetch error:", err);
+        setError(err instanceof Error ? err.message : "Failed to load route");
+        // Fallback to mock route
+        const start = order.startLocation || { lat: 6.9271, lng: 79.8612 };
+        const end = order.endLocation || { lat: 6.9281, lng: 79.8622 };
+        setRoute(generateMockRoute(start, end, 50));
+      } finally {
+        setLoading(false);
       }
-    }, 1000)
-    return () => clearInterval(interval)
-  }, [index, pos, route])
+    };
+
+    fetchRoute();
+
+    return () => {
+      if (animationRef.current) {
+        clearInterval(animationRef.current);
+        animationRef.current = null;
+      }
+    };
+  }, [order]);
+
+  useEffect(() => {
+    if (route.length === 0 || !isStarted) return; // Only animate if started
+
+    animationRef.current = setInterval(() => {
+      if (index < route.length - 1) {
+        const next = route[index + 1];
+        setPrev(pos);
+        setPos(next);
+        setIndex((i) => i + 1);
+      } else {
+        if (animationRef.current) {
+          clearInterval(animationRef.current);
+          animationRef.current = null;
+        }
+      }
+    }, 300);
+
+    return () => {
+      if (animationRef.current) {
+        clearInterval(animationRef.current);
+        animationRef.current = null;
+      }
+    };
+  }, [index, pos, route, isStarted]); // Add isStarted to dependencies
+
+  const startDelivery = () => {
+    setIsStarted(true);
+    setIndex(0);
+    if (route.length > 0) {
+      setPos(route[0]);
+      setPrev(route[0]);
+    }
+  };
+
+  const handleDeliveryUpdate = async () => {
+    let status = "completed"
+    updateOrderStatus(order.deliveryId, status).then(() => {
+      setDelivered(true);
+    });
+  };
+
+  if (error) {
+    return (
+      <div className="p-4 text-red-500">
+        <p>Error: {error}</p>
+        <p>Using simulated route instead</p>
+      </div>
+    );
+  }
+
+  if (loading || route.length === 0) {
+    return <div className="p-4 text-center">Loading route...</div>;
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -70,17 +168,23 @@ export function DeliveryMap({ order }: DeliveryMapProps) {
               scrollWheelZoom
               style={{ height: "400px", width: "100%" }}
             >
+              <MapUpdater center={pos} />
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution="&copy; OpenStreetMap contributors"
               />
-              <Polyline positions={route} color="blue" />
+              <Polyline
+                positions={route}
+                color="blue"
+                weight={5}
+                opacity={0.7}
+              />
               <LeafletTrackingMarker
                 icon={icon}
                 position={pos}
                 previousPosition={prev}
-                duration={1000}
-                keepAtCenter
+                duration={300}
+                keepAtCenter={false}
               />
             </MapContainer>
           </CardContent>
@@ -94,24 +198,56 @@ export function DeliveryMap({ order }: DeliveryMapProps) {
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm">Restaurant: {order.restaurantName}</p>
-            <p className="text-sm">Pickup: {order.restaurantAddress}</p>
+            <p className="text-sm">
+              Pickup: {order.restaurantAddress || "Not specified"}
+            </p>
             <p className="text-sm">Drop: {order.deliveryAddress}</p>
-            <Button onClick={() => setDelivered(true)} disabled={delivered} className="w-full">
-              {delivered ? "Delivered ✅" : "Mark as Delivered"}
-            </Button>
+
+            {!isStarted ? (
+              <div className="pt-4">
+                <Button
+                  onClick={startDelivery}
+                  className="w-full bg-green-600 hover:bg-green-700"
+                >
+                  Start Delivery
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className="pt-4">
+                  <Button
+                    onClick={handleDeliveryUpdate}
+                    disabled={delivered}
+                    className="w-full"
+                  >
+                    {delivered ? "Delivered ✅" : "Mark as Delivered"}
+                  </Button>
+                </div>
+                {index < route.length - 1 && (
+                  <div className="pt-2 text-sm text-muted-foreground">
+                    Delivery in progress (
+                    {Math.round((index / route.length) * 100)}%)
+                  </div>
+                )}
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
     </div>
-  )
+  );
 }
 
-function generateMockRoute(start: { lat: number, lng: number }, end: { lat: number, lng: number }, steps = 20): [number, number][] {
-  const points: [number, number][] = []
+function generateMockRoute(
+  start: { lat: number; lng: number },
+  end: { lat: number; lng: number },
+  steps = 50
+): [number, number][] {
+  const points: [number, number][] = [];
   for (let i = 0; i <= steps; i++) {
-    const lat = start.lat + (end.lat - start.lat) * (i / steps)
-    const lng = start.lng + (end.lng - start.lng) * (i / steps)
-    points.push([lat, lng])
+    const lat = start.lat + (end.lat - start.lat) * (i / steps);
+    const lng = start.lng + (end.lng - start.lng) * (i / steps);
+    points.push([lat, lng]);
   }
-  return points
+  return points;
 }
