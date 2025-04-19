@@ -1,16 +1,14 @@
 import { MenuManagement } from "@/components/admin/menu-management"
-import { menuItems } from "@/lib/mock-data"
 import { DashboardHeader } from "@/components/dashboard-header"
 
 export default function MenuManagementPage() {
-  // Filter for items belonging to the admin's restaurant (mock)
-  const restaurantId = "1" // Mock admin's restaurant ID
-  const restaurantMenu = menuItems.filter((item) => item.restaurantId === restaurantId)
+  // Mock admin's restaurant ID - in a real app, this would come from auth/session
+  const restaurantId = "67e8e89f717ae5cd5e46ea78"
 
   return (
     <div className="space-y-6">
       <DashboardHeader title="Menu Management" description="Add, edit, and manage your restaurant's menu items" />
-      <MenuManagement items={restaurantMenu} />
+      <MenuManagement restaurantId={restaurantId} />
     </div>
   )
 }

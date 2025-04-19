@@ -22,7 +22,7 @@ export default async function RestaurantPage({ params }: { params: { id: string 
     name: item.name,
     description: item.description,
     price: item.price,
-    image: item.image,
+    image: item.imageUrl,
     category: item.category,
     restaurantId: item.restaurantId
   }))
