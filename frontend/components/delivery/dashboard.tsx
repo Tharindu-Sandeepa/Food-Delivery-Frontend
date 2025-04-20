@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, Navigation, CreditCard, Clock } from "lucide-react";
 import { updateOrderStatus } from "@/lib/delivery-api";
-import { useRouter } from "next/navigation"
+import { useRouter } from "next/navigation";
 
 export interface OrderItem {
   id: string;
@@ -23,11 +23,13 @@ export interface Order {
   orderId: string;
   restaurantId: string;
   restaurantName: string;
-  deliveryAddress: string;
+  deliveryAddress: Address;
+  restaurantLocation: Address;
   items: OrderItem[];
   status:
     | "pending"
     | "preparing"
+    | "ready"
     | "assigned"
     | "delivering"
     | "completed"
@@ -37,9 +39,14 @@ export interface Order {
   paymentMethod: string;
   deliveryId?: string;
   driverId?: string;
-  deliveryPersonId?: string;
   startLocation?: { lat: number; lng: number };
   endLocation?: { lat: number; lng: number };
+}
+
+interface Address {
+  lat: number;
+  lng: number;
+  address: string;
 }
 
 interface DeliveryDashboardProps {
@@ -50,15 +57,13 @@ export function DeliveryDashboard({
   orders: initialOrders,
 }: DeliveryDashboardProps) {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
-  const router = useRouter()
+  const router = useRouter();
 
   const pendingOrders = orders.filter((order) => order.status === "pending");
   const preparingOrders = orders.filter(
     (order) => order.status === "preparing"
   );
-  const assignedOrders = orders.filter(
-    (order) => order.status === "assigned"
-  );
+  const assignedOrders = orders.filter((order) => order.status === "assigned");
   const deliveringOrders = orders.filter(
     (order) => order.status === "delivering"
   );
@@ -68,15 +73,17 @@ export function DeliveryDashboard({
 
   const upOrderStatus = (deliveryId: string, status: Order["status"]) => {
     // Make API call to update order status
-    updateOrderStatus(deliveryId, status).then(() => {
-      setOrders((prev) =>
-        prev.map((order) =>
-          order.deliveryId === deliveryId ? { ...order, status } : order
-        )
-      );
-    }).then(()=>{
-      router.push("/delivery/map")
-    });
+    updateOrderStatus(deliveryId, status)
+      .then(() => {
+        setOrders((prev) =>
+          prev.map((order) =>
+            order.deliveryId === deliveryId ? { ...order, status } : order
+          )
+        );
+      })
+      .then(() => {
+        router.push("/delivery/map");
+      });
   };
 
   const getBadgeVariant = (status: Order["status"]) => {
@@ -148,13 +155,8 @@ export function DeliveryDashboard({
                 <div>
                   <p className="text-sm font-medium">Pickup from:</p>
                   <p className="text-sm text-muted-foreground">
-                    {order.restaurantName}
-                    {order.startLocation && (
-                      <span className="block text-xs">
-                        (Lat: {order.startLocation.lat.toFixed(6)}, Lng:{" "}
-                        {order.startLocation.lng.toFixed(6)})
-                      </span>
-                    )}
+                    {order.restaurantName} {" ,"}
+                    {order.restaurantLocation.address}
                   </p>
                 </div>
               </div>
@@ -164,13 +166,7 @@ export function DeliveryDashboard({
                 <div>
                   <p className="text-sm font-medium">Deliver to:</p>
                   <p className="text-sm text-muted-foreground">
-                    {order.deliveryAddress}
-                    {order.endLocation && (
-                      <span className="block text-xs">
-                        (Lat: {order.endLocation.lat.toFixed(6)}, Lng:{" "}
-                        {order.endLocation.lng.toFixed(6)})
-                      </span>
-                    )}
+                    {order.deliveryAddress.address}
                   </p>
                 </div>
               </div>
@@ -180,16 +176,17 @@ export function DeliveryDashboard({
               {order.status === "assigned" && deliveringOrders.length == 0 ? (
                 <Button
                   onClick={() =>
-                    order.deliveryId && upOrderStatus(order.deliveryId, "delivering")
+                    order.deliveryId &&
+                    upOrderStatus(order.deliveryId, "delivering")
                   }
                 >
                   Picked Up
-                  
                 </Button>
-              ) : order.status === "delivering"  ? (
+              ) : order.status === "delivering" ? (
                 <Button
                   onClick={() =>
-                    order.deliveryId && upOrderStatus(order.deliveryId, "completed")
+                    order.deliveryId &&
+                    upOrderStatus(order.deliveryId, "completed")
                   }
                 >
                   Delivered

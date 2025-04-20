@@ -20,8 +20,16 @@ export async function getOrderById(orderId: string) {
     return res.data;
 }
 
+
+
 // update order status
 export async function updateOrderStatus(deliveryId: string, status: string) {
   const response = await axios.patch(`${API_BASE}/${deliveryId}/status`, { status });
+  return response.data;
+}
+
+// update order status
+export async function updateOrderStatus2(deliveryId: string, status: string, endLocation: { lat: number; lng: number }, driverId: string) {
+  const response = await axios.patch(`${API_BASE}/${deliveryId}/complete`, { status, endLocation, driverId });
   return response.data;
 }

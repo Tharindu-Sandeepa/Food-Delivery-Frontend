@@ -27,14 +27,14 @@ const MOCK_USERS = [
     role: "customer",
   },
   {
-    id: "abc123",
+    id: "rest_malabe_1",
     name: "Restaurant Admin",
     email: "kasun@gmail.com",
     password: "123",
     role: "restaurant",
   },
   {
-    id: "67fe0e3d17f650396dc554c8",
+    id: "d002",
     name: "Delivery Driver",
     email: "driver@gmail.com",
     password: "123",

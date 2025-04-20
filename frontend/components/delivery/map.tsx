@@ -7,7 +7,7 @@ import L from "leaflet";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import "leaflet/dist/leaflet.css";
-import { updateOrderStatus } from "@/lib/delivery-api";
+import { updateOrderStatus2 } from "@/lib/delivery-api";
 
 const icon = L.icon({
   iconUrl: "/images/delivery-bike.png",
@@ -21,14 +21,21 @@ interface DeliveryMapProps {
   order: {
     id: string;
     deliveryId: string;
+    driverId: string;
     restaurantName: string;
-    restaurantAddress?: string;
-    deliveryAddress: string;
+    restaurantAddress?: Address;
+    deliveryAddress: Address;
     status: string;
     items: any[];
     startLocation?: { lat: number; lng: number };
     endLocation?: { lat: number; lng: number };
   };
+}
+
+interface Address {
+  lat: number;
+  lng: number;
+  address: string;
 }
 
 function MapUpdater({ center }: { center: [number, number] }) {
@@ -49,6 +56,8 @@ export function DeliveryMap({ order }: DeliveryMapProps) {
   const [error, setError] = useState<string | null>(null);
   const [isStarted, setIsStarted] = useState(false); // New state for tracking if delivery has started
   const animationRef = useRef<NodeJS.Timeout | null>(null);
+
+  console.log("Order Map data:", order);
 
   useEffect(() => {
     const fetchRoute = async () => {
@@ -136,7 +145,7 @@ export function DeliveryMap({ order }: DeliveryMapProps) {
 
   const handleDeliveryUpdate = async () => {
     let status = "completed"
-    updateOrderStatus(order.deliveryId, status).then(() => {
+    updateOrderStatus2(order.deliveryId, status, order.endLocation || { lat: 0, lng: 0 }, order.driverId).then(() => {
       setDelivered(true);
     });
   };
@@ -199,9 +208,9 @@ export function DeliveryMap({ order }: DeliveryMapProps) {
           <CardContent className="space-y-3">
             <p className="text-sm">Restaurant: {order.restaurantName}</p>
             <p className="text-sm">
-              Pickup: {order.restaurantAddress || "Not specified"}
+              Pickup: {order.restaurantAddress?.address || "Not specified"}
             </p>
-            <p className="text-sm">Drop: {order.deliveryAddress}</p>
+            <p className="text-sm">Drop: {order.deliveryAddress.address}</p>
 
             {!isStarted ? (
               <div className="pt-4">

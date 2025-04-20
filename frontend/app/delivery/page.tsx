@@ -15,11 +15,13 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
+  orderId: string;
   restaurantId: string;
   restaurantName: string;
-  deliveryAddress: string;
+  deliveryAddress: Address;
+  restaurantLocation: Address;
   items: OrderItem[];
-  status: "pending" | "assigned" | "delivering" | "completed" | "cancelled";
+  status: "pending" | "preparing" | "ready" | "assigned" | "delivering" | "completed" | "cancelled"
   total: number;
   createdAt: string;
   paymentMethod: string;
@@ -27,6 +29,12 @@ export interface Order {
   driverId?: string;
   startLocation?: { lat: number; lng: number };
   endLocation?: { lat: number; lng: number };
+}
+
+interface Address {
+  lat: number
+  lng: number
+  address: string
 }
 
 export interface Delivery {
@@ -82,6 +90,8 @@ export default function DeliveryPage() {
             };
           })
         );
+
+        console.log("Fetched orders:", ordersData);
 
         setOrders(ordersData);
       } catch (err) {
