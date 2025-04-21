@@ -9,7 +9,7 @@ export default function SystemAdminPage() {
         title="System Administration"
         description="Manage platform users, restaurants, and system settings"
       />
-      <SystemAdminDashboard users={users as any} restaurants={restaurants as any} pendingRestaurants={pendingRestaurants as any} />
+      <SystemAdminDashboard users={users as any } restaurants={restaurants as any} pendingRestaurants={pendingRestaurants as any} />
     </div>
   )
 }

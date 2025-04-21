@@ -1,254 +1,272 @@
 "use client"
-
-import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useAuth } from "../../lib/hooks/useAuth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useAuth } from "@/hooks/useAuth"
-import { useToast } from "@/components/ui/use-toast"
-import { Loader2 } from "lucide-react"
+import { LoginFormData, RegisterFormData } from "../../lib/types/auth"
+import { useForm } from "react-hook-form"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function LoginPage() {
   const router = useRouter()
-  const auth = useAuth()
+  const { login, register, loading, error } = useAuth()
+  const [activeTab, setActiveTab] = useState<"login" | "register">("login")
 
-  const { login, register } = auth
-  const { toast } = useToast()
+  // Login form
+  const { 
+    register: loginRegister, 
+    handleSubmit: handleLoginSubmit,
+    formState: { errors: loginErrors }
+  } = useForm<LoginFormData>()
 
-  // Login form state - removed role selection
-  const [loginData, setLoginData] = useState({
-    email: "",
-    password: "",
+  // Register form
+  const { 
+    register: registerRegister, 
+    handleSubmit: handleRegisterSubmit,
+    watch,
+    formState: { errors: registerErrors }
+  } = useForm<RegisterFormData>({
+    defaultValues: {
+      role: "customer"
+    }
   })
 
-  // Register form state - kept role selection
-  const [registerData, setRegisterData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    role: "customer" as "customer" | "restaurant" | "driver" | "admin",
-  })
+  const selectedRole = watch("role")
 
-  const [isLoading, setIsLoading] = useState(false)
-
-  const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setLoginData((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const handleRegisterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setRegisterData((prev) => ({ ...prev, [name]: value }))
-  }
-
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-
+  const onLogin = async (data: LoginFormData) => {
     try {
-      // Login without specifying role - it will be returned from the backend
-      const result = await login({
-        email: loginData.email,
-        password: loginData.password,
-      })
-
-      toast({
-        title: "Login successful",
-        description: "You have been logged in successfully",
-      })
-
-      // Redirect based on the role returned from the backend
-      const userRole = result.user.role
-      if (userRole === "customer") {
-        router.push("/")
-      } else if (userRole === "restaurant") {
-        router.push("/admin")
-      } else if (userRole === "driver") {
-        router.push("/delivery")
-      } else if (userRole === "admin") {
-        router.push("/admin-system")
-      }
-    } catch (error: any) {
-      toast({
-        title: "Login failed",
-        description: error.message || "Please check your credentials and try again",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
+      await login(data.email, data.password)
+      router.push("/") // Will be redirected based on role via middleware
+    } catch (err) {
+      console.error("Login error:", err)
     }
   }
 
-  const handleRegisterSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-
+  const onRegister = async (data: RegisterFormData) => {
     try {
-      const result = await register({
-        name: registerData.name,
-        email: registerData.email,
-        password: registerData.password,
-        role: registerData.role,
-      })
-
-      toast({
-        title: "Registration successful",
-        description: "Your account has been created successfully",
-      })
-
-      // Redirect based on the role from registration
-      const userRole = result.user.role
-      if (userRole === "customer") {
-        router.push("/")
-      } else if (userRole === "restaurant") {
-        router.push("/admin")
-      } else if (userRole === "driver") {
-        router.push("/delivery")
-      } else if (userRole === "admin") {
-        router.push("/admin-system")
-      }
-    } catch (error: any) {
-      toast({
-        title: "Registration failed",
-        description: error.message || "Please check your information and try again",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
+      await register(data)
+      router.push("/") // Will be redirected based on role via middleware
+    } catch (err) {
+      console.error("Registration error:", err)
     }
   }
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-background">
-      <div className="absolute top-4 left-4">
-        <Button variant="ghost" onClick={() => router.push("/")} className="text-lg font-bold text-primary">
-          FoodDash
-        </Button>
-      </div>
+    <div className="flex justify-center items-center min-h-screen bg-background p-4">
       <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
-          <CardDescription>Sign in to your account to continue</CardDescription>
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold">
+            {activeTab === "login" ? "Welcome Back" : "Create Account"}
+          </CardTitle>
+          <CardDescription>
+            {activeTab === "login" 
+              ? "Sign in to continue" 
+              : "Join our food community"}
+          </CardDescription>
         </CardHeader>
-        <Tabs defaultValue="login">
+
+        <Tabs 
+          value={activeTab}
+          onValueChange={(val) => setActiveTab(val as "login" | "register")}
+          className="w-full"
+        >
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Login</TabsTrigger>
             <TabsTrigger value="register">Register</TabsTrigger>
           </TabsList>
+
+          {/* Error Message */}
+          {error && (
+            <Alert variant="destructive" className="mx-4 mt-4">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Login Form */}
           <TabsContent value="login">
-            <form onSubmit={handleLoginSubmit}>
-              <CardContent className="space-y-4 pt-4">
+            <form onSubmit={handleLoginSubmit(onLogin)}>
+              <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="login-email">Email</Label>
                   <Input
-                    id="email"
-                    name="email"
+                    id="login-email"
                     type="email"
-                    placeholder="name@example.com"
-                    value={loginData.email}
-                    onChange={handleLoginChange}
-                    required
+                    {...loginRegister("email", { required: "Email is required" })}
+                    placeholder="your@email.com"
                   />
+                  {loginErrors.email && (
+                    <p className="text-sm text-destructive">{loginErrors.email.message}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="login-password">Password</Label>
                   <Input
-                    id="password"
-                    name="password"
+                    id="login-password"
                     type="password"
-                    value={loginData.password}
-                    onChange={handleLoginChange}
-                    required
+                    {...loginRegister("password", { 
+                      required: "Password is required",
+                      minLength: {
+                        value: 6,
+                        message: "Password must be at least 6 characters"
+                      }
+                    })}
+                    placeholder="••••••••"
                   />
+                  {loginErrors.password && (
+                    <p className="text-sm text-destructive">{loginErrors.password.message}</p>
+                  )}
                 </div>
               </CardContent>
-              <CardFooter>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Signing in...
-                    </>
-                  ) : (
-                    "Sign In"
-                  )}
+              <CardContent>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Signing in..." : "Sign In"}
                 </Button>
-              </CardFooter>
+              </CardContent>
             </form>
           </TabsContent>
+
+          {/* Registration Form */}
           <TabsContent value="register">
-            <form onSubmit={handleRegisterSubmit}>
-              <CardContent className="space-y-4 pt-4">
+            <form onSubmit={handleRegisterSubmit(onRegister)}>
+              <CardContent className="space-y-4">
+                {/* Name */}
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
+                  <Label htmlFor="register-name">Full Name</Label>
                   <Input
-                    id="name"
-                    name="name"
-                    type="text"
-                    value={registerData.name}
-                    onChange={handleRegisterChange}
-                    required
+                    id="register-name"
+                    {...registerRegister("name", { required: "Name is required" })}
+                    placeholder="John Doe"
                   />
+                  {registerErrors.name && (
+                    <p className="text-sm text-destructive">{registerErrors.name.message}</p>
+                  )}
                 </div>
+
+                {/* Email */}
                 <div className="space-y-2">
                   <Label htmlFor="register-email">Email</Label>
                   <Input
                     id="register-email"
-                    name="email"
                     type="email"
-                    placeholder="name@example.com"
-                    value={registerData.email}
-                    onChange={handleRegisterChange}
-                    required
+                    {...registerRegister("email", { 
+                      required: "Email is required",
+                      pattern: {
+                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                        message: "Invalid email address"
+                      }
+                    })}
+                    placeholder="your@email.com"
                   />
+                  {registerErrors.email && (
+                    <p className="text-sm text-destructive">{registerErrors.email.message}</p>
+                  )}
                 </div>
+
+                {/* Password */}
                 <div className="space-y-2">
                   <Label htmlFor="register-password">Password</Label>
                   <Input
                     id="register-password"
-                    name="password"
                     type="password"
-                    value={registerData.password}
-                    onChange={handleRegisterChange}
-                    required
+                    {...registerRegister("password", { 
+                      required: "Password is required",
+                      minLength: {
+                        value: 6,
+                        message: "Password must be at least 6 characters"
+                      }
+                    })}
+                    placeholder="••••••••"
                   />
+                  {registerErrors.password && (
+                    <p className="text-sm text-destructive">{registerErrors.password.message}</p>
+                  )}
                 </div>
+
+                {/* Phone */}
                 <div className="space-y-2">
-                  <Label htmlFor="register-role">Register as</Label>
+                  <Label htmlFor="register-phone">Phone Number</Label>
+                  <Input
+                    id="register-phone"
+                    type="tel"
+                    {...registerRegister("phone", { 
+                      required: "Phone number is required",
+                      pattern: {
+                        value: /^\+?\d{10,15}$/,
+                        message: "Invalid phone number"
+                      }
+                    })}
+                    placeholder="+1234567890"
+                  />
+                  {registerErrors.phone && (
+                    <p className="text-sm text-destructive">{registerErrors.phone.message}</p>
+                  )}
+                </div>
+
+                {/* Role Selector */}
+                <div className="space-y-2">
+                  <Label htmlFor="register-role">Register As</Label>
                   <Select
-                    value={registerData.role}
-                    onValueChange={(value) => setRegisterData((prev) => ({ ...prev, role: value as "customer" | "restaurant" | "driver" | "admin" }))}
+                    {...registerRegister("role", { required: "Role is required" })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="register-role">
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="customer">Customer</SelectItem>
-                      <SelectItem value="restaurant">Restaurant Admin</SelectItem>
-                      <SelectItem value="driver">Delivery Personnel</SelectItem>
-                      <SelectItem value="admin">System Admin</SelectItem>
+                      <SelectItem value="restaurant">Restaurant</SelectItem>
+                      <SelectItem value="delivery">Delivery</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Address - Conditionally shown for customer/delivery */}
+                {(selectedRole === "customer" || selectedRole === "delivery") && (
+                  <div className="space-y-2">
+                    <Label htmlFor="register-address">Address</Label>
+                    <Input
+                      id="register-address"
+                      {...registerRegister("address", { 
+                        required: selectedRole === "customer" || selectedRole === "delivery" 
+                          ? "Address is required" 
+                          : false
+                      })}
+                      placeholder="123 Main St, City"
+                    />
+                    {registerErrors.address && (
+                      <p className="text-sm text-destructive">{registerErrors.address.message}</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Restaurant ID - Conditionally shown for restaurant */}
+                {selectedRole === "restaurant" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="register-restaurantId">Restaurant ID</Label>
+                    <Input
+                      id="register-restaurantId"
+                      {...registerRegister("restaurantId", { 
+                        required: selectedRole === "restaurant" 
+                          ? "Restaurant ID is required" 
+                          : false
+                      })}
+                      placeholder="Restaurant identifier"
+                    />
+                    {registerErrors.restaurantId && (
+                      <p className="text-sm text-destructive">{registerErrors.restaurantId.message}</p>
+                    )}
+                  </div>
+                )}
               </CardContent>
-              <CardFooter>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating Account...
-                    </>
-                  ) : (
-                    "Create Account"
-                  )}
+              <CardContent>
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? "Creating account..." : "Register"}
                 </Button>
-              </CardFooter>
+              </CardContent>
             </form>
           </TabsContent>
         </Tabs>

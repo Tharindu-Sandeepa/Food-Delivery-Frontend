@@ -20,6 +20,7 @@ export default function RestaurantManagementPage() {
     <div className="space-y-6">
       <DashboardHeader title="Restaurant Management" description="Approve, reject, and manage platform restaurants" />
       <RestaurantManagement restaurants={restaurants} />
+
     </div>
   )
 }
