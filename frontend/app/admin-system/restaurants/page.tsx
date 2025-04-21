@@ -6,7 +6,7 @@ export default function RestaurantManagementPage() {
   return (
     <div className="space-y-6">
       <DashboardHeader title="Restaurant Management" description="Approve, reject, and manage platform restaurants" />
-      <RestaurantManagement restaurants={restaurants} pendingRestaurants={pendingRestaurants} />
+      <RestaurantManagement restaurants={restaurants as any} pendingRestaurants={pendingRestaurants as any} />
     </div>
   )
 }

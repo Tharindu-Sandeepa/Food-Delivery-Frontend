@@ -1,3 +1,5 @@
+"use client"
+
 import { RestaurantCard } from "@/components/restaurant-card"
 import { CategoryFilter } from "@/components/category-filter"
 import { SearchBar } from "@/components/search-bar"
@@ -6,11 +8,43 @@ import { FeaturedCategories } from "@/components/home/featured-categories"
 import { HowItWorks } from "@/components/home/how-it-works"
 import { Footer } from "@/components/footer"
 import { restaurants } from "@/lib/mock-data"
+import { useAuth } from "@/lib/hooks/useAuth"
+import { useEffect } from "react"
+import { Button } from "@/components/ui/button"
 
 export default function Home() {
+  const { user, loading, error, login, logout } = useAuth()
+
+  useEffect(() => {
+    if (error) {
+      console.error("Auth error:", error)
+    }
+  }, [error])
+
   return (
     <>
       <main className="min-h-[calc(100vh-4rem)]">
+        {/* Example auth status display */}
+        <div className="container mx-auto px-4 pt-4">
+          {loading ? (
+            <p>Loading user...</p>
+          ) : user ? (
+            <div className="flex items-center gap-4">
+              <p>Welcome, {user.name}!</p>
+              <Button variant="outline" onClick={logout}>
+                Logout
+              </Button>
+            </div>
+          ) : (
+            <Button 
+              variant="outline" 
+              onClick={() => login("test@example.com", "password")}
+            >
+              Demo Login
+            </Button>
+          )}
+        </div>
+
         {/* Hero Banner Slider */}
         <section className="container mx-auto px-4 pt-6 pb-10">
           <BannerSlider />
