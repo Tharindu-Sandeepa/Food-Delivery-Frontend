@@ -30,7 +30,7 @@ export default function TrackingPage({ params }: { params: { id: string } }) {
           <p className="text-muted-foreground">Follow your order in real-time as it makes its way to you</p>
         </div>
 
-        <DeliveryTracking order={orderWithDetails} />
+        <DeliveryTracking order={orderWithDetails as any} />
       </div>
     </main>
   )

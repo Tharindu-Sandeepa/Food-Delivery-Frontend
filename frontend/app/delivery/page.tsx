@@ -1,18 +1,128 @@
-import { DeliveryDashboard } from "@/components/delivery/dashboard"
-import { orders } from "@/lib/mock-data"
-import { DashboardHeader } from "@/components/dashboard-header"
+"use client";
+
+import { useEffect, useState } from "react";
+import { DeliveryDashboard } from "@/components/delivery/dashboard";
+import { DashboardHeader } from "@/components/dashboard-header";
+import { useAuth } from "@/hooks/useAuth";
+import { getDeliveriesByUser, getOrderById } from "@/lib/delivery-api";
+
+export interface OrderItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+export interface Order {
+  id: string;
+  orderId: string;
+  restaurantId: string;
+  restaurantName: string;
+  deliveryAddress: Address;
+  restaurantLocation: Address;
+  items: OrderItem[];
+  status: "pending" | "preparing" | "ready" | "assigned" | "delivering" | "completed" | "cancelled"
+  total: number;
+  createdAt: string;
+  paymentMethod: string;
+  deliveryId?: string;
+  driverId?: string;
+  startLocation?: { lat: number; lng: number };
+  endLocation?: { lat: number; lng: number };
+}
+
+interface Address {
+  lat: number
+  lng: number
+  address: string
+}
+
+export interface Delivery {
+  deliveryId: string;
+  orderId: string;
+  driverId: string;
+  driverName: string;
+  status: string;
+  startLocation: { lat: number; lng: number };
+  endLocation: { lat: number; lng: number };
+}
 
 export default function DeliveryPage() {
-  // Filter for orders assigned to this delivery person (mock)
-  const deliveryPersonId = "1" // Mock delivery person ID
-  const assignedOrders = orders.filter(
-    (order) => order.deliveryPersonId === deliveryPersonId && ["preparing", "delivering"].includes(order.status),
-  )
+  const { user } = useAuth();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const deliveryPersonId = user?.id;
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!deliveryPersonId) return;
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Get deliveries data (could be array or single object)
+        const deliveries = await getDeliveriesByUser(deliveryPersonId);
+
+        // Normalize to array - handle both single object and array cases
+        const deliveriesArray = Array.isArray(deliveries)
+          ? deliveries
+          : deliveries
+          ? [deliveries]
+          : [];
+
+        if (deliveriesArray.length === 0) {
+          setOrders([]);
+          return;
+        }
+
+        const ordersData = await Promise.all(
+          deliveriesArray.map(async (delivery: Delivery) => {
+            const order = await getOrderById(delivery.orderId);
+            return {
+              ...order,
+              status: delivery.status,
+              deliveryId: delivery.deliveryId,
+              driverId: delivery.driverId,
+              startLocation: delivery.startLocation,
+              endLocation: delivery.endLocation,
+            };
+          })
+        );
+
+        console.log("Fetched orders:", ordersData);
+
+        setOrders(ordersData);
+      } catch (err) {
+        console.error("Failed to fetch deliveries:", err);
+        setError(
+          err instanceof Error ? err.message : "Failed to load deliveries"
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [deliveryPersonId]);
+
+  if (error) {
+    return <div className="text-red-500 p-4">Error: {error}</div>;
+  }
 
   return (
     <div className="space-y-6">
-      <DashboardHeader title="Delivery Dashboard" description="Manage your active deliveries" />
-      <DeliveryDashboard orders={assignedOrders} />
+      <DashboardHeader
+        title="Delivery Dashboard"
+        description="Manage your active deliveries"
+      />
+
+      {loading ? (
+        <div className="text-center">Loading...</div>
+      ) : (
+        <DeliveryDashboard orders={orders as any} />
+      )}
     </div>
-  )
+  );
 }

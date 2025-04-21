@@ -4,24 +4,16 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { useAppSelector } from "@/lib/store/hooks"
+import { selectCartItems, selectCartTotal } from "@/lib/store/cartSlice"
 
-interface CartItem {
-  id: string
-  menuItemId: string
-  name: string
-  price: number
-  quantity: number
-}
-
-interface CartSummaryProps {
-  items: CartItem[]
-}
-
-export function CartSummary({ items }: CartSummaryProps) {
+export function CartSummary() {
   const router = useRouter()
   const [isProcessing, setIsProcessing] = useState(false)
 
-  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const items = useAppSelector(selectCartItems)
+  const subtotal = useAppSelector(selectCartTotal)
+
   const deliveryFee = 2.99
   const tax = subtotal * 0.08
   const total = subtotal + deliveryFee + tax
