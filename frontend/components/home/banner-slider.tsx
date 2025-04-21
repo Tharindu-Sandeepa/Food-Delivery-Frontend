@@ -18,7 +18,7 @@ interface Slide {
 const slides: Slide[] = [
   {
     id: 1,
-    image: "/placeholder.svg?height=500&width=1200",
+    image: "https://tb-static.uber.com/prod/image-proc/processed_images/b41071caaad775e0f8f57ca3f8aa67db/db809eadd12d21eb61044e0f3bf7c9b7.jpeg",
     title: "Delicious Food Delivered To Your Door",
     description: "Order from your favorite restaurants and get food delivered in minutes",
     buttonText: "Order Now",
@@ -26,7 +26,7 @@ const slides: Slide[] = [
   },
   {
     id: 2,
-    image: "/placeholder.svg?height=500&width=1200",
+    image: "https://tb-static.uber.com/prod/image-proc/processed_images/7b751084b0925f656eb971ef0ddb7c0e/db809eadd12d21eb61044e0f3bf7c9b7.jpeg",
     title: "Special Offers Just For You",
     description: "Discover exclusive deals and discounts on your favorite meals",
     buttonText: "See Offers",
@@ -34,7 +34,7 @@ const slides: Slide[] = [
   },
   {
     id: 3,
-    image: "/placeholder.svg?height=500&width=1200",
+    image: "https://tb-static.uber.com/prod/image-proc/processed_images/3fc84f876aa46fca911924397bca0245/db809eadd12d21eb61044e0f3bf7c9b7.jpeg",
     title: "Become a Delivery Partner",
     description: "Join our team and earn money delivering food in your area",
     buttonText: "Join Now",

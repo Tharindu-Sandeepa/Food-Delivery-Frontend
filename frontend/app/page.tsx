@@ -10,11 +10,11 @@ import { HowItWorks } from "@/components/home/how-it-works"
 import { Footer } from "@/components/footer"
 import { restaurants } from "@/lib/mock-data"
 import { useAuth } from "@/lib/hooks/useAuth"
-import { useEffect } from "react"
 import { Button } from "@/components/ui/button"
 
 export default function Home() {
   const { user, loading, error, login, logout } = useAuth()
+  const [restaurants, setRestaurants] = useState([])
 
   useEffect(() => {
     if (error) {
@@ -22,10 +22,7 @@ export default function Home() {
     }
   }, [error])
 
-export default function Home() {
-  const [restaurants, setRestaurants] = useState([])
-
-
+  
   useEffect(() => {
     const fetchRestaurants = async () => {
       const res = await fetch("http://localhost:3002/restaurants")
