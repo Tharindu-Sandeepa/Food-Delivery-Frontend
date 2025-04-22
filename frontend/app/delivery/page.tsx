@@ -23,6 +23,8 @@ export interface Order {
   items: OrderItem[];
   status: "pending" | "preparing" | "ready" | "assigned" | "delivering" | "completed" | "cancelled"
   total: number;
+  deliveryFee: number;
+  subtotal: number;
   createdAt: string;
   paymentMethod: string;
   deliveryId?: string;
