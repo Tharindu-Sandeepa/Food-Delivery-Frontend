@@ -56,52 +56,54 @@ export function OrderManagement({ initOrders }: OrderManagementProps) {
   const completedOrders = orders.filter((order) => order.status === "completed")
 
   const handleMarkReady = async (order: Order) => {
-    try {
-      const response = await fetch(`http://localhost:3001/api/orders/${order.orderId}/ready`, {
-        method: 'PATCH'
-      })
-      if (response.ok) {
-        setOrders(prev => prev.map(o => 
-          o.orderId === order.orderId ? { ...o, status: 'assigned' } : o
-        ))
-        //setAssigningOrder(order)
 
-        window.location.reload()
+    setAssigningOrder(order)
+    // try {
+    //   const response = await fetch(`http://localhost:3001/api/orders/${order.orderId}/ready`, {
+    //     method: 'PATCH'
+    //   })
+    //   if (response.ok) {
+    //     setOrders(prev => prev.map(o => 
+    //       o.orderId === order.orderId ? { ...o, status: 'assigned' } : o
+    //     ))
+    //     //setAssigningOrder(order)
+
+    //     window.location.reload()
         
         
-        toast({
-          title: "Order marked as ready",
-          description: "Driver assign",
-        })
-      } else {
-        throw new Error(await response.text())
-      }
-    } catch (error) {
-      toast({
-        title: "Failed to mark order as ready",
-        description: error instanceof Error ? error.message : "Unknown error",
-        variant: "destructive"
-      })
-    }
+    //     toast({
+    //       title: "Order marked as ready",
+    //       description: "Driver assign",
+    //     })
+    //   } else {
+    //     throw new Error(await response.text())
+    //   }
+    // } catch (error) {
+    //   toast({
+    //     title: "Failed to mark order as ready",
+    //     description: error instanceof Error ? error.message : "Unknown error",
+    //     variant: "destructive"
+    //   })
+    // }
   }
 
-  // const handleAssignmentComplete = (driver: { id: string; name: string }) => {
-  //   if (!assigningOrder) return
+  const handleAssignmentComplete = (driver: { driverId: string; driverName: string }) => {
+    if (!assigningOrder) return
 
-  //   setOrders(prev => prev.map(o => 
-  //     o.orderId === assigningOrder.orderId ? {
-  //       ...o,
-  //       status: 'assigned',
-  //       deliveryPersonId: driver.id,
-  //       deliveryPersonName: driver.name
-  //     } : o
-  //   ))
-  //   setAssigningOrder(null)
-  //   toast({
-  //     title: "Driver assigned",
-  //     description: `${driver.name} is on the way to pick up the order`,
-  //   })
-  // }
+    setOrders(prev => prev.map(o => 
+      o.orderId === assigningOrder.orderId ? {
+        ...o,
+        status: 'assigned',
+        deliveryPersonId: driver.driverId,
+        deliveryPersonName: driver.driverName
+      } : o
+    ))
+    setAssigningOrder(null)
+    toast({
+      title: "Driver assigned",
+      description: `${driver.driverName} is on the way to pick up the order`,
+    })
+  }
 
   const updateOrderStatus = async (orderId: string, status: Order["status"]) => {
     try {
@@ -259,7 +261,7 @@ export function OrderManagement({ initOrders }: OrderManagementProps) {
           {completedOrders.length === 0 ? <p className="text-center text-muted-foreground">No completed orders</p> : completedOrders.map(order => <OrderCard key={order.orderId} order={order} />)}
         </TabsContent>
       </Tabs>
-{/** 
+* 
       <AssignDriverDialog
         orderId={assigningOrder?.orderId || ''}
         open={!!assigningOrder}
@@ -269,7 +271,7 @@ export function OrderManagement({ initOrders }: OrderManagementProps) {
         startLocation={assigningOrder?.restaurantLocation}
         restaurantId={assigningOrder?.restaurantId}
       />
-      */}
+     
     </div>
   )
 }

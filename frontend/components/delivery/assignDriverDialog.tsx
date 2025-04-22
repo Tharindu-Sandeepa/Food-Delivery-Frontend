@@ -15,7 +15,7 @@ interface AssignDriverDialogProps {
   orderId: string
   open: boolean
   onClose: () => void
-  onAssignmentComplete: (driver: { id: string; name: string }) => void
+  onAssignmentComplete: (driver: { driverId: string; driverName: string }) => void
   deliveryAddress?: Address
   startLocation?: Address
   restaurantId?: string
@@ -28,7 +28,7 @@ export function AssignDriverDialog({
   onAssignmentComplete
 }: AssignDriverDialogProps) {
   const [status, setStatus] = useState<'idle' | 'searching' | 'assigned' | 'error'>('idle')
-  const [driver, setDriver] = useState<{ id: string; name: string } | null>(null)
+  const [driver, setDriver] = useState<{ driverId: string; driverName: string } | null>(null)
 
   useEffect(() => {
     if (!open) {
@@ -40,8 +40,8 @@ export function AssignDriverDialog({
   const assignDriver = async () => {
     setStatus('searching')
     try {
-      const response = await fetch(`http://localhost:3003/api/deliveries/assign/${orderId}`, {
-        method: 'POST',
+      const response = await fetch(`http://localhost:3001/api/orders/${orderId}/ready`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -51,13 +51,15 @@ export function AssignDriverDialog({
 
       const data = await response.json()
 
-      if (!data.driver || !data.driver.id || !data.driver.name) {
+      console.log("Driver assignment response:", data)
+
+      if (!data || !data.driverId || !data.driverName) {
         throw new Error("Invalid driver data")
       }
 
-      setDriver(data.driver)
+      setDriver(data)
       setStatus('assigned')
-      onAssignmentComplete(data.driver)
+      onAssignmentComplete(data)
     } catch (error) {
       console.error("Driver assignment error:", error)
       setStatus('error')
@@ -94,7 +96,7 @@ export function AssignDriverDialog({
                 Driver assigned successfully!
               </p>
               <p className="mt-2">
-                {driver.name} is on the way to pick up the order.
+                {driver.driverName} is on the way to pick up the order.
               </p>
             </div>
           )}

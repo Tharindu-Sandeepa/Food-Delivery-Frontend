@@ -64,6 +64,7 @@ export function Sidebar({ role }: SidebarProps) {
   const deliveryLinks = [
     { href: "/delivery", label: "Deliveries", icon: TruckDelivery },
     { href: "/delivery/map", label: "Map", icon: Map },
+    { href: "/delivery/profile", label: "Profile", icon: Map },
   ]
 
   const adminLinks = [
@@ -110,7 +111,7 @@ export function Sidebar({ role }: SidebarProps) {
                 </Link>
               )
             })}
-            <div className="mt-auto pt-4 border-t mt-4">
+            <div className="mt-auto pt-4 border-t">
               <Button variant="outline" className="w-full justify-start" onClick={logout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Logout

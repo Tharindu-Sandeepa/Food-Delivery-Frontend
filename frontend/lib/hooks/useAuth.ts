@@ -34,6 +34,8 @@ export const useAuth = () => {
         throw new Error(data.message || 'Login failed');
       }
 
+      localStorage.setItem('userId', data.user._id);
+
       setUser(data.user);
       return data.user;
     } catch (err) {

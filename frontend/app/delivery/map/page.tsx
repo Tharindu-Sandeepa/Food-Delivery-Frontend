@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { DeliveryMap } from "@/components/delivery/map";
-import { useAuth } from "@/hooks/useAuth";
+
 import { getDeliveriesByUser, getOrderById } from "@/lib/delivery-api";
+import { useAuth } from "@/lib/hooks/useAuth";
 
 export interface OrderItem {
   id: string;
@@ -44,7 +45,7 @@ export default function DeliveryMapPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const deliveryPersonId = user?.id;
+  const deliveryPersonId = localStorage.getItem("userId");
 
   useEffect(() => {
     const fetchData = async () => {

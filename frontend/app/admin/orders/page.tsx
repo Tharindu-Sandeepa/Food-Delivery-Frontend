@@ -4,7 +4,7 @@ import { OrderManagement } from "@/components/admin/order-management"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { useEffect, useState } from "react"
 import { getOrderByResturentsId } from "@/lib/order-api"
-import { useAuth } from "@/hooks/useAuth"
+import { useAuthContext } from "@/lib/context/AuthContext"
 
 interface OrderItem {
   id: string
@@ -31,8 +31,10 @@ export default function OrderManagementPage() {
   const [initOrders, setInitOrders] = useState<Order[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const { user } = useAuth()
-  const restaurantId = user?.id 
+  const { user } = useAuthContext()
+  const restaurantId = localStorage.getItem("userId");
+
+  console.log("Restaurant ID",restaurantId)
 
   useEffect(() => {
     const fetchInitOrders = async () => {
