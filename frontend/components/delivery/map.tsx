@@ -8,13 +8,14 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import "leaflet/dist/leaflet.css";
 import { updateOrderStatus2 } from "@/lib/delivery-api";
+import io from "socket.io-client";
 
 const icon = L.icon({
   iconUrl: "/images/delivery-bike.png",
-  iconSize: [80, 80], // Extra large size
-  iconAnchor: [40, 80], // Anchor at center-bottom
-  popupAnchor: [0, -80], // Popup appears above marker
-  className: "moving-bike-icon", // Optional for additional CSS styling
+  iconSize: [80, 80],
+  iconAnchor: [40, 80],
+  popupAnchor: [0, -80],
+  className: "moving-bike-icon",
 });
 
 interface DeliveryMapProps {
@@ -54,10 +55,15 @@ export function DeliveryMap({ order }: DeliveryMapProps) {
   const [delivered, setDelivered] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isStarted, setIsStarted] = useState(false); // New state for tracking if delivery has started
+  const [isStarted, setIsStarted] = useState(false);
+  const [socket, setSocket] = useState<any | null>(null);
   const animationRef = useRef<NodeJS.Timeout | null>(null);
 
-  console.log("Order Map data:", order);
+  // Debugging
+  useEffect(() => {
+    console.log("Current position:", pos);
+    console.log("Current progress:", Math.round((index / route.length) * 100));
+  }, [pos, index, route]);
 
   useEffect(() => {
     const fetchRoute = async () => {
@@ -68,7 +74,6 @@ export function DeliveryMap({ order }: DeliveryMapProps) {
         const start = order.startLocation || { lat: 6.9271, lng: 79.8612 };
         const end = order.endLocation || { lat: 6.9281, lng: 79.8622 };
 
-        // Get actual route from OpenRouteService API
         const response = await fetch(
           `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${process.env.NEXT_PUBLIC_ORS_API_KEY}&start=${start.lng},${start.lat}&end=${end.lng},${end.lat}`
         );
@@ -77,8 +82,6 @@ export function DeliveryMap({ order }: DeliveryMapProps) {
 
         const data = await response.json();
         const coordinates = data.features[0].geometry.coordinates;
-
-        // Convert [lng, lat] to [lat, lng] format
         const points = coordinates.map((coord: [number, number]) => [
           coord[1],
           coord[0],
@@ -90,7 +93,6 @@ export function DeliveryMap({ order }: DeliveryMapProps) {
       } catch (err) {
         console.error("Route fetch error:", err);
         setError(err instanceof Error ? err.message : "Failed to load route");
-        // Fallback to mock route
         const start = order.startLocation || { lat: 6.9271, lng: 79.8612 };
         const end = order.endLocation || { lat: 6.9281, lng: 79.8622 };
         setRoute(generateMockRoute(start, end, 50));
@@ -109,8 +111,42 @@ export function DeliveryMap({ order }: DeliveryMapProps) {
     };
   }, [order]);
 
+  // Socket.IO connection
   useEffect(() => {
-    if (route.length === 0 || !isStarted) return; // Only animate if started
+    if (!isStarted) return;
+
+    const newSocket = io("http://localhost:3003", {
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      query: {
+        driverId: order.driverId,
+        deliveryId: order.deliveryId,
+      },
+    });
+
+    newSocket.on("connect", () => {
+      console.log("Connected to WebSocket server");
+      newSocket.emit("driver_register", {
+        driverId: order.driverId,
+        position: { lat: pos[0], lng: pos[1] },
+      });
+    });
+
+    newSocket.on("connect_error", (err: any) => {
+      console.error("Connection error:", err);
+    });
+
+    setSocket(newSocket);
+
+    return () => {
+      newSocket.disconnect();
+    };
+  }, [isStarted, order.driverId, order.deliveryId]);
+
+  // Position animation and updates
+  useEffect(() => {
+    if (route.length === 0 || !isStarted) return;
 
     animationRef.current = setInterval(() => {
       if (index < route.length - 1) {
@@ -118,6 +154,17 @@ export function DeliveryMap({ order }: DeliveryMapProps) {
         setPrev(pos);
         setPos(next);
         setIndex((i) => i + 1);
+
+        // Send position update
+        if (socket?.connected) {
+          socket.emit("position_update", {
+            driverId: order.driverId,
+            deliveryId: order.deliveryId,
+            position: { lat: next[0], lng: next[1] },
+            progress: Math.round(((index + 1) / route.length) * 100),
+          });
+          console.log("Sent position update");
+        }
       } else {
         if (animationRef.current) {
           clearInterval(animationRef.current);
@@ -132,7 +179,7 @@ export function DeliveryMap({ order }: DeliveryMapProps) {
         animationRef.current = null;
       }
     };
-  }, [index, pos, route, isStarted]); // Add isStarted to dependencies
+  }, [index, pos, route, isStarted, socket, order.driverId, order.deliveryId]);
 
   const startDelivery = () => {
     setIsStarted(true);
@@ -144,8 +191,13 @@ export function DeliveryMap({ order }: DeliveryMapProps) {
   };
 
   const handleDeliveryUpdate = async () => {
-    let status = "completed"
-    updateOrderStatus2(order.deliveryId, status, order.endLocation || { lat: 0, lng: 0 }, order.driverId).then(() => {
+    const status = "completed";
+    updateOrderStatus2(
+      order.deliveryId,
+      status,
+      order.endLocation || { lat: 0, lng: 0 },
+      order.driverId
+    ).then(() => {
       setDelivered(true);
     });
   };

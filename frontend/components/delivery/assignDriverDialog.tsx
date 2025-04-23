@@ -15,7 +15,7 @@ interface AssignDriverDialogProps {
   orderId: string
   open: boolean
   onClose: () => void
-  onAssignmentComplete: (driver: { driverId: string; driverName: string }) => void
+  onAssignmentComplete: (driver: { driverId: string; driverName: string; contactNumber:string }) => void
   deliveryAddress?: Address
   startLocation?: Address
   restaurantId?: string

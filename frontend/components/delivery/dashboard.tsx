@@ -40,7 +40,7 @@ export interface Order {
   paymentMethod: string;
   deliveryId?: string;
   deliveryFee: number;
-  subtotal: number;
+  subTotal: number;
   driverId?: string;
   startLocation?: { lat: number; lng: number };
   endLocation?: { lat: number; lng: number };
@@ -148,7 +148,7 @@ export function DeliveryDashboard({
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Sub Toatal</span>
-                <span>${order.subtotal.toFixed(2)}</span>
+                <span>${order.subTotal.toFixed(2)}</span>
               </div>
             </div>
 
