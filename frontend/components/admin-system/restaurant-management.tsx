@@ -26,7 +26,7 @@ interface Location {
 interface Restaurant {
   _id: string
   name: string
-  imageUrl: string
+  imageUrl?: string | null // Allow null to match database
   cuisineType: string
   address: string
   location: Location
@@ -45,21 +45,20 @@ interface RestaurantManagementProps {
 }
 
 export function RestaurantManagement({ restaurants: initialRestaurants }: RestaurantManagementProps) {
-  const [restaurants, setRestaurants] = useState<Restaurant[]>(initialRestaurants)
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [currentRestaurant, setCurrentRestaurant] = useState<Restaurant | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [addressSearch, setAddressSearch] = useState("")
-  const [mapKey, setMapKey] = useState(0) // Used to force remount of Map component
+  const [mapKey, setMapKey] = useState(0)
+  const [imageFile, setImageFile] = useState<File | null>(null)
   const addressInputRef = useRef<HTMLInputElement>(null)
 
-  // Form state
   const [formData, setFormData] = useState({
     name: "",
     address: "",
     cuisineType: "",
-    imageUrl: "",
     openingHours: {
       open: "09:00",
       close: "21:00"
@@ -73,7 +72,15 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
   })
 
   useEffect(() => {
-    setRestaurants(initialRestaurants)
+    // Validate and filter restaurants to ensure valid imageUrl
+    const validatedRestaurants = initialRestaurants.map(restaurant => {
+      if (typeof restaurant.imageUrl !== 'string' && restaurant.imageUrl != null) {
+        console.warn(`Invalid imageUrl for restaurant ${restaurant._id}:`, restaurant.imageUrl)
+        return { ...restaurant, imageUrl: null }
+      }
+      return restaurant
+    })
+    setRestaurants(validatedRestaurants)
   }, [initialRestaurants])
 
   const filteredRestaurants = restaurants.filter(
@@ -106,14 +113,14 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
       name: restaurant.name,
       address: restaurant.address,
       cuisineType: restaurant.cuisineType,
-      imageUrl: restaurant.imageUrl,
       openingHours: restaurant.openingHours || { open: "09:00", close: "21:00" },
       deliveryZones: restaurant.deliveryZones.join(", "),
       location: restaurant.location,
       isAvailable: restaurant.isAvailable
     })
     setAddressSearch(restaurant.address)
-    setMapKey(prev => prev + 1) // Force remount of Map component
+    setImageFile(null)
+    setMapKey(prev => prev + 1)
     setIsDialogOpen(true)
   }
 
@@ -123,7 +130,6 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
       name: "",
       address: "",
       cuisineType: "",
-      imageUrl: "",
       openingHours: {
         open: "09:00",
         close: "21:00"
@@ -136,14 +142,14 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
       isAvailable: true
     })
     setAddressSearch("")
-    setMapKey(prev => prev + 1) // Force remount of Map component
+    setImageFile(null)
+    setMapKey(prev => prev + 1)
     setIsDialogOpen(true)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Validate location
     if (formData.location.latitude === 0 && formData.location.longitude === 0) {
       toast.error("Please select a location on the map")
       return
@@ -152,29 +158,29 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
     setIsSubmitting(true)
     
     try {
-      const payload = {
-        ...formData,
-        deliveryZones: formData.deliveryZones.split(",").map(zone => zone.trim())
+      const formDataToSend = new FormData()
+      formDataToSend.append('name', formData.name)
+      formDataToSend.append('address', formData.address)
+      formDataToSend.append('cuisineType', formData.cuisineType)
+      formDataToSend.append('openingHours', JSON.stringify(formData.openingHours))
+      formDataToSend.append('deliveryZones', formData.deliveryZones)
+      formDataToSend.append('location[latitude]', formData.location.latitude.toString())
+      formDataToSend.append('location[longitude]', formData.location.longitude.toString())
+      formDataToSend.append('isAvailable', formData.isAvailable.toString())
+      if (imageFile) {
+        formDataToSend.append('image', imageFile)
       }
 
       let response
       if (currentRestaurant) {
-        // Update existing restaurant
         response = await fetch(`http://localhost:3002/restaurants/${currentRestaurant._id}`, {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload)
+          body: formDataToSend
         })
       } else {
-        // Create new restaurant
         response = await fetch('http://localhost:3002/restaurants', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload)
+          body: formDataToSend
         })
       }
 
@@ -218,11 +224,16 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
     }))
   }
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setImageFile(e.target.files[0])
+    }
+  }
+
   const handleAddressSearch = async () => {
     if (!addressSearch.trim()) return
     
     try {
-      // Use a geocoding service (here we're using Nominatim as an example)
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressSearch)}`
       )
@@ -259,7 +270,6 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
       }
     }))
     
-    // Reverse geocode to get address
     fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
       .then(res => res.json())
       .then(data => {
@@ -272,6 +282,20 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
         }
       })
       .catch(err => console.error("Reverse geocoding error:", err))
+  }
+
+  const getImageSrc = (imageUrl?: string | null): string => {
+    // Log the imageUrl to debug problematic values
+    if (imageUrl === undefined || imageUrl === null || imageUrl === "" || typeof imageUrl !== "string") {
+      console.warn("Invalid imageUrl detected:", imageUrl)
+      return "/placeholder.svg"
+    }
+    // Ensure the imageUrl starts with a slash and is a valid path
+    if (!imageUrl.startsWith("/uploads/")) {
+      console.warn("Unexpected imageUrl format:", imageUrl)
+      return "/placeholder.svg"
+    }
+    return `http://localhost:3002${imageUrl}`
   }
 
   return (
@@ -313,7 +337,7 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 relative rounded overflow-hidden">
                           <Image
-                            src={restaurant.imageUrl || "/placeholder.svg"}
+                            src={getImageSrc(restaurant.imageUrl)}
                             alt={restaurant.name}
                             fill
                             className="object-cover"
@@ -374,7 +398,6 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
         </CardContent>
       </Card>
 
-      {/* Add/Edit Restaurant Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-3xl overflow-y-auto max-h-[90vh]">
           <DialogHeader>
@@ -405,14 +428,28 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="imageUrl">Image URL *</Label>
+                <Label htmlFor="image">Image *</Label>
                 <Input
-                  id="imageUrl"
-                  name="imageUrl"
-                  value={formData.imageUrl}
-                  onChange={handleInputChange}
-                  required
+                  id="image"
+                  name="image"
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png"
+                  onChange={handleImageChange}
+                  required={!currentRestaurant}
                 />
+                {currentRestaurant && currentRestaurant.imageUrl && (
+                  <div className="mt-2">
+                    <Label>Current Image:</Label>
+                    <div className="h-20 w-20 relative">
+                      <Image
+                        src={getImageSrc(currentRestaurant.imageUrl)}
+                        alt="Current restaurant"
+                        fill
+                        className="object-cover rounded"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="deliveryZones">Delivery Zones (comma separated) *</Label>
