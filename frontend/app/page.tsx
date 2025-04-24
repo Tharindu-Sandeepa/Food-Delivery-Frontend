@@ -23,6 +23,15 @@ export default function Home() {
   }, [error])
 
   
+
+  const getImageSrc = (image?: string | null): string => {
+    if (!image || typeof image !== "string" || !image.startsWith("/uploads/")) {
+      console.warn("Invalid image detected:", image)
+      return "/placeholder.svg"
+    }
+    return `http://localhost:3002${image}`
+  }
+  
   useEffect(() => {
     const fetchRestaurants = async () => {
       const res = await fetch("http://localhost:3002/restaurants")
@@ -31,14 +40,18 @@ export default function Home() {
         id: restaurant._id, // remap _id to id
         name: restaurant.name,
         description: restaurant.description,
-        image: restaurant.imageUrl,
+        image: getImageSrc(restaurant.imageUrl), 
         location: restaurant.location,
         rating: restaurant.rating,
       }))
+
+      console.log("Fetched restaurants:", mappedData)
       setRestaurants(mappedData)
     }
     fetchRestaurants()
   }, [])
+
+ 
 
   return (
     <>

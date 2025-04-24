@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Switch } from "@/components/ui/switch"
-import { Edit, Plus, Trash2 } from "lucide-react"
+import { Edit, Plus, Trash2, Upload } from "lucide-react"
 import { toast } from "sonner"
 
 interface MenuItem {
@@ -28,6 +28,14 @@ interface MenuItem {
 
 interface MenuManagementProps {
   restaurantId: string
+}
+
+const getImageSrc = (imageUrl?: string): string => {
+  if (!imageUrl || typeof imageUrl !== "string" || !imageUrl.startsWith("/uploads/")) {
+    console.warn("Invalid imageUrl detected:", imageUrl)
+    return "/placeholder.svg"
+  }
+  return `http://localhost:3002${imageUrl}`
 }
 
 export function MenuManagement({ restaurantId }: MenuManagementProps) {
@@ -56,50 +64,49 @@ export function MenuManagement({ restaurantId }: MenuManagementProps) {
     fetchMenuItems()
   }, [restaurantId])
 
-  const handleSave = async (item: Omit<MenuItem, "_id"> & { _id?: string }) => {
+  const handleSave = async (formData: FormData, itemId?: string) => {
     try {
       setIsLoading(true)
       let response
       let method
       let url
 
-      if (item._id) {
+      if (itemId) {
         // Update existing item
         method = "PUT"
-        url = `http://localhost:3002/restaurants/menu/${item._id}`
+        url = `http://localhost:3002/restaurants/menu/${itemId}`
       } else {
         // Add new item
         method = "POST"
         url = "http://localhost:3002/restaurants/menu"
       }
 
+      // Ensure restaurantId is included
+      if (!itemId) {
+        formData.append("restaurantId", restaurantId)
+      }
+
       response = await fetch(url, {
         method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...item,
-          restaurantId,
-        }),
+        body: formData,
       })
 
-      if (!response.ok) throw new Error(`Failed to ${item._id ? "update" : "create"} menu item`)
+      if (!response.ok) throw new Error(`Failed to ${itemId ? "update" : "create"} menu item`)
 
       const updatedItem = await response.json()
 
-      if (item._id) {
-        setItems((prev) => prev.map((i) => (i._id === item._id ? updatedItem : i)))
+      if (itemId) {
+        setItems((prev) => prev.map((i) => (i._id === itemId ? updatedItem : i)))
       } else {
         setItems((prev) => [...prev, updatedItem])
       }
 
-      toast.success(`Menu item ${item._id ? "updated" : "created"} successfully`)
+      toast.success(`Menu item ${itemId ? "updated" : "created"} successfully`)
       setIsDialogOpen(false)
       setEditItem(null)
     } catch (error) {
       console.error("Error saving menu item:", error)
-      toast.error(`Failed to ${item._id ? "update" : "create"} menu item`)
+      toast.error(`Failed to ${itemId ? "update" : "create"} menu item`)
     } finally {
       setIsLoading(false)
     }
@@ -127,12 +134,12 @@ export function MenuManagement({ restaurantId }: MenuManagementProps) {
   const handleToggleAvailability = async (id: string, currentStatus: boolean) => {
     try {
       setIsLoading(true)
+      const formData = new FormData()
+      formData.append("isAvailable", (!currentStatus).toString())
+
       const response = await fetch(`http://localhost:3002/restaurants/menu/${id}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ isAvailable: !currentStatus }),
+        body: formData,
       })
 
       if (!response.ok) throw new Error("Failed to update availability")
@@ -201,7 +208,7 @@ export function MenuManagement({ restaurantId }: MenuManagementProps) {
                   {item.imageUrl && (
                     <div className="relative w-20 h-20 rounded-md overflow-hidden">
                       <Image
-                        src={item.imageUrl || "/placeholder.svg"}
+                        src={getImageSrc(item.imageUrl)}
                         alt={item.name}
                         fill
                         className="object-cover"
@@ -273,26 +280,50 @@ export function MenuManagement({ restaurantId }: MenuManagementProps) {
 interface MenuItemFormProps {
   item: MenuItem
   categories: string[]
-  onSave: (item: Omit<MenuItem, "_id"> & { _id?: string }) => void
+  onSave: (formData: FormData, itemId?: string) => void
   isLoading: boolean
 }
 
 function MenuItemForm({ item, categories, onSave, isLoading }: MenuItemFormProps) {
   const [formData, setFormData] = useState<Omit<MenuItem, "_id"> & { _id?: string }>(item)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [fileName, setFileName] = useState<string>(item.imageUrl ? item.imageUrl.split("/").pop() || "" : "")
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setSelectedFile(file)
+      setFileName(file.name)
+    } else {
+      setSelectedFile(null)
+      setFileName("")
+    }
+  }
+
+  const handleCheckboxChange = (name: string, checked: boolean) => {
     setFormData((prev) => ({ ...prev, [name]: checked }))
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSave(formData)
+    const data = new FormData()
+    data.append("name", formData.name)
+    data.append("description", formData.description)
+    data.append("price", formData.price.toString())
+    data.append("category", formData.category)
+    data.append("isVegetarian", formData.isVegetarian.toString())
+    data.append("isVegan", formData.isVegan.toString())
+    data.append("isAvailable", formData.isAvailable.toString())
+    if (selectedFile) {
+      data.append("image", selectedFile)
+    }
+
+    onSave(data, formData._id)
   }
 
   return (
@@ -349,8 +380,28 @@ function MenuItemForm({ item, categories, onSave, isLoading }: MenuItemFormProps
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="imageUrl">Image URL *</Label>
-        <Input id="imageUrl" name="imageUrl" value={formData.imageUrl} onChange={handleChange} required />
+        <Label htmlFor="image">Image *</Label>
+        <div className="flex items-center gap-2">
+          <Input
+            id="image"
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => document.getElementById("image")?.click()}
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            {fileName || "Choose Image"}
+          </Button>
+        </div>
+        {fileName && (
+          <p className="text-sm text-muted-foreground">Selected: {fileName}</p>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -358,7 +409,7 @@ function MenuItemForm({ item, categories, onSave, isLoading }: MenuItemFormProps
           <Switch
             id="isVegetarian"
             checked={formData.isVegetarian}
-            onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, isVegetarian: checked }))}
+            onCheckedChange={(checked) => handleCheckboxChange("isVegetarian", checked)}
           />
           <Label htmlFor="isVegetarian">Vegetarian</Label>
         </div>
@@ -367,7 +418,7 @@ function MenuItemForm({ item, categories, onSave, isLoading }: MenuItemFormProps
           <Switch
             id="isVegan"
             checked={formData.isVegan}
-            onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, isVegan: checked }))}
+            onCheckedChange={(checked) => handleCheckboxChange("isVegan", checked)}
           />
           <Label htmlFor="isVegan">Vegan</Label>
         </div>
@@ -377,7 +428,7 @@ function MenuItemForm({ item, categories, onSave, isLoading }: MenuItemFormProps
         <Switch
           id="isAvailable"
           checked={formData.isAvailable}
-          onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, isAvailable: checked }))}
+          onCheckedChange={(checked) => handleCheckboxChange("isAvailable", checked)}
         />
         <Label htmlFor="isAvailable">Available</Label>
       </div>

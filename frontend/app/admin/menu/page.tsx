@@ -3,7 +3,7 @@ import { DashboardHeader } from "@/components/dashboard-header"
 
 export default function MenuManagementPage() {
   // Mock admin's restaurant ID - in a real app, this would come from auth/session
-  const restaurantId = "67e8e89f717ae5cd5e46ea78"
+  const restaurantId = "67ff56ca667302042dc5f6e0"
 
   return (
     <div className="space-y-6">
