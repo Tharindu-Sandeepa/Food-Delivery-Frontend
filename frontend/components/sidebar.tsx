@@ -15,6 +15,7 @@ import {
   ClipboardList,
   LayoutDashboard,
   UtensilsCrossed,
+  Building2,
   TruckIcon as TruckDelivery,
   Map,
   Users,
@@ -57,7 +58,8 @@ export function Sidebar({ role }: SidebarProps) {
 
   const restaurantLinks = [
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/admin/menu", label: "Menu Management", icon: UtensilsCrossed },
+    { href: "/admin/restaurant", label: "Restaurant Onboarding", icon: Building2 } ,
+       { href: "/admin/menu", label: "Menu Management", icon: UtensilsCrossed },
     { href: "/admin/orders", label: "Order Management", icon: ClipboardList },
   ]
 
