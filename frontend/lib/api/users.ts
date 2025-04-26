@@ -1,15 +1,5 @@
-import { API_BASE_URL } from '../constants/endpoints';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  isActive: boolean;
-  createdAt: string;
-  phone?: string;
-  address?: string;
-}
+import api from './axios';
+import { User } from '../types/user';
 
 interface FetchUsersResponse {
   success: boolean;
@@ -22,53 +12,42 @@ interface FetchUsersResponse {
   };
 }
 
+interface UpdateUserData {
+  name: string;
+  email: string;
+  phone: string;
+  address?: string;
+}
+
+interface CreateUserData {
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+  address?: string;
+  password: string;
+}
+
 export const fetchUsers = async (
   token: string,
   params?: {
     page?: number;
     limit?: number;
-    search?: string;
   }
 ): Promise<FetchUsersResponse> => {
-  try {
-    const queryParams = new URLSearchParams();
-    if (params?.page) queryParams.append('page', params.page.toString());
-    if (params?.limit) queryParams.append('limit', params.limit.toString());
-    if (params?.search) queryParams.append('search', params.search);
-
-    const response = await fetch(`${API_BASE_URL}/users?${queryParams.toString()}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include', // Important for cookies
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch users');
-    }
-
-    const data = await response.json();
-    
-    // Ensure the response matches your expected structure
-    if (!data.success) {
-      throw new Error(data.message || 'Failed to fetch users');
-    }
-
-    return {
-      success: true,
-      data: data.data || [],
-      pagination: data.pagination || {
-        page: params?.page || 1,
-        limit: params?.limit || 10,
-        total: data.total || 0,
-        pages: data.pages || 1
-      }
-    };
-  } catch (error) {
-    console.error('Error in fetchUsers:', error);
-    throw error;
-  }
+  const response = await api.get('/users', {
+    params,
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const mappedData = response.data.data.map((user: any) => ({
+    ...user,
+    id: user._id,
+  }));
+  return {
+    success: response.data.success,
+    data: mappedData,
+    pagination: response.data.pagination,
+  };
 };
 
 export const updateUserStatus = async (
@@ -76,22 +55,10 @@ export const updateUserStatus = async (
   userId: string,
   isActive: boolean
 ): Promise<User> => {
-  const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
-    method: 'PUT',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    credentials: 'include',
-    body: JSON.stringify({ isActive }),
+  const response = await api.put(`/users/${userId}`, { isActive }, {
+    headers: { Authorization: `Bearer ${token}` },
   });
-
-  if (!response.ok) {
-    throw new Error('Failed to update user status');
-  }
-
-  const data = await response.json();
-  return data.data;
+  return { ...response.data.data, id: response.data.data._id };
 };
 
 export const updateUserRole = async (
@@ -99,21 +66,71 @@ export const updateUserRole = async (
   userId: string,
   role: string
 ): Promise<User> => {
-  const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
-    method: 'PUT',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      
-    },
-    credentials: 'include',
-    body: JSON.stringify({ role }),
+  const response = await api.put(`/users/${userId}`, { role }, {
+    headers: { Authorization: `Bearer ${token}` },
   });
+  return { ...response.data.data, id: response.data.data._id };
+};
 
-  if (!response.ok) {
-    throw new Error('Failed to update user role');
-  }
+export const updateUser = async (
+  token: string,
+  userId: string,
+  data: UpdateUserData
+): Promise<User> => {
+  const response = await api.put(`/users/${userId}`, data, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return { ...response.data.data, id: response.data.data._id };
+};
 
-  const data = await response.json();
-  return data.data;
+export const deleteUser = async (
+  token: string,
+  userId: string
+): Promise<void> => {
+  await api.delete(`/users/${userId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+};
+
+export const getCurrentUser = async (token: string): Promise<User> => {
+  const response = await api.get('/users/me', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return { ...response.data.data, id: response.data.data._id };
+};
+
+export const updateCurrentUser = async (
+  token: string,
+  data: UpdateUserData
+): Promise<User> => {
+  const response = await api.put('/users/updatedetails', data, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return { ...response.data.data, id: response.data.data._id };
+};
+
+export const forgotPassword = async (email: string): Promise<{ message: string }> => {
+  const response = await api.post('/users/forgotpassword', { email });
+  return response.data;
+};
+
+export const resetPassword = async (
+  token: string,
+  password: string
+): Promise<{ token: string; user: User }> => {
+  const response = await api.put(`/users/resetpassword/${token}`, { password });
+  return {
+    token: response.data.token,
+    user: { ...response.data.user, id: response.data.user._id },
+  };
+};
+
+export const createUser = async (
+  token: string,
+  data: CreateUserData
+): Promise<User> => {
+  const response = await api.post('/users', data, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return { ...response.data.data, id: response.data.data._id };
 };

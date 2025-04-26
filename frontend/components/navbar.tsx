@@ -97,6 +97,12 @@ export function Navbar() {
               <span className="sr-only">Profile</span>
             </Link>
           </Button>
+          <Button variant="ghost" size="icon" asChild>
+          <Link href="/user-profile">
+              <User className="h-5 w-5" />
+              <span className="sr-only">Profile</span>
+            </Link>
+          </Button>
         </div>
       </div>
     </header>
