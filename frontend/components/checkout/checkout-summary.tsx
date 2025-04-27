@@ -1,24 +1,30 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
+"use client";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 
 interface CartItem {
-  id: string
-  menuItemId: string
-  name: string
-  price: number
-  quantity: number
-  image: string
+  id: string;
+  menuItemId: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image: string;
+  restaurantId: string;
 }
 
 interface CheckoutSummaryProps {
-  items: CartItem[]
+  items: CartItem[];
 }
 
 export function CheckoutSummary({ items }: CheckoutSummaryProps) {
-  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const deliveryFee = 2.99
-  const tax = subtotal * 0.08
-  const total = subtotal + deliveryFee + tax
+  const subtotal = items.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+  const deliveryFee = 2.99;
+  const tax = subtotal * 0.08;
+  const total = subtotal + deliveryFee + tax;
 
   return (
     <Card>
@@ -26,7 +32,6 @@ export function CheckoutSummary({ items }: CheckoutSummaryProps) {
         <CardTitle>Order Summary</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Order items */}
         <div className="space-y-2">
           {items.map((item) => (
             <div key={item.id} className="flex justify-between text-sm">
@@ -63,5 +68,5 @@ export function CheckoutSummary({ items }: CheckoutSummaryProps) {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
