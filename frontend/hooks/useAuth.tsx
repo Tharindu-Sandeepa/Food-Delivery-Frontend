@@ -80,6 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     setError(null);
     try {
+      console.log("register data", data);
       const response = await register(data);
       const { token, user } = response;
       setUser(user);
@@ -88,12 +89,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
       return response;
+      
     } catch (err: any) {
       setError(err.response?.data?.error || "Registration failed");
       throw err;
     } finally {
       setLoading(false);
     }
+    
   };
 
   const forgotPassword = async (email: string): Promise<{ message: string }> => {

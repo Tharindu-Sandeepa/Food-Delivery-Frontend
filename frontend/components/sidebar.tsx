@@ -8,13 +8,14 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { useAuth } from "@/hooks/useAuth"
+import { useAuth } from "@/hooks/useAuth";
 import {
   Home,
   ShoppingCart,
   ClipboardList,
   LayoutDashboard,
   UtensilsCrossed,
+  Building2,
   TruckIcon as TruckDelivery,
   Map,
   Users,
@@ -57,13 +58,15 @@ export function Sidebar({ role }: SidebarProps) {
 
   const restaurantLinks = [
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/admin/menu", label: "Menu Management", icon: UtensilsCrossed },
+    { href: "/admin/restaurant", label: "Restaurant Onboarding", icon: Building2 } ,
+       { href: "/admin/menu", label: "Menu Management", icon: UtensilsCrossed },
     { href: "/admin/orders", label: "Order Management", icon: ClipboardList },
   ]
 
   const deliveryLinks = [
     { href: "/delivery", label: "Deliveries", icon: TruckDelivery },
     { href: "/delivery/map", label: "Map", icon: Map },
+    { href: "/delivery/profile", label: "Profile", icon: Map },
   ]
 
   const adminLinks = [
@@ -110,7 +113,7 @@ export function Sidebar({ role }: SidebarProps) {
                 </Link>
               )
             })}
-            <div className="mt-auto pt-4 border-t mt-4">
+            <div className="mt-auto pt-4 border-t">
               <Button variant="outline" className="w-full justify-start" onClick={logout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Logout

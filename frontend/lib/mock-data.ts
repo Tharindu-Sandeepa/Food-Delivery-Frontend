@@ -303,7 +303,7 @@ export const cartItems = [
 // Orders
 export const orders = [
   {
-    id: "order1",
+    id: "d-1745427978456",
     restaurantId: "1",
     restaurantName: "Burger Palace",
     items: [

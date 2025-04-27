@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, Navigation, CreditCard, Clock } from "lucide-react";
 import { updateOrderStatus } from "@/lib/delivery-api";
 import { useRouter } from "next/navigation";
+import { Delivery } from "../../app/delivery/page";
 
 export interface OrderItem {
   id: string;
@@ -38,6 +39,8 @@ export interface Order {
   createdAt: string;
   paymentMethod: string;
   deliveryId?: string;
+  deliveryFee: number;
+  subTotal: number;
   driverId?: string;
   startLocation?: { lat: number; lng: number };
   endLocation?: { lat: number; lng: number };
@@ -135,6 +138,18 @@ export function DeliveryDashboard({
                   <span>${(item.price * item.quantity).toFixed(2)}</span>
                 </div>
               ))}
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Delivery Fee</span>
+                <span>${order.deliveryFee.toFixed(2)}</span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Sub Toatal</span>
+                <span>${order.subTotal.toFixed(2)}</span>
+              </div>
             </div>
 
             <Separator />

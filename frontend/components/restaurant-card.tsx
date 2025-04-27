@@ -8,7 +8,7 @@ interface RestaurantCardProps {
   restaurant: {
     id: string
     name: string
-    image: string
+    image?: string
     cuisine: string
     rating: number
     deliveryTime: string

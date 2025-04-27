@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { DeliveryDashboard } from "@/components/delivery/dashboard";
 import { DashboardHeader } from "@/components/dashboard-header";
-import { useAuth } from "@/hooks/useAuth";
 import { getDeliveriesByUser, getOrderById } from "@/lib/delivery-api";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface OrderItem {
   id: string;
@@ -23,6 +23,8 @@ export interface Order {
   items: OrderItem[];
   status: "pending" | "preparing" | "ready" | "assigned" | "delivering" | "completed" | "cancelled"
   total: number;
+  deliveryFee: number;
+  subtotal: number;
   createdAt: string;
   paymentMethod: string;
   deliveryId?: string;
@@ -52,7 +54,7 @@ export default function DeliveryPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const deliveryPersonId = user?.id;
+  const deliveryPersonId = localStorage.getItem("userId");
 
   useEffect(() => {
     const fetchData = async () => {

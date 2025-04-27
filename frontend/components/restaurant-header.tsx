@@ -1,24 +1,29 @@
-import Image from "next/image"
-import { Badge } from "@/components/ui/badge"
-import { Clock, MapPin, Star } from "lucide-react"
+import Image from "next/image";
+import { Badge } from "@/components/ui/badge";
+import { Clock, MapPin, Star } from "lucide-react";
 
 interface RestaurantHeaderProps {
   restaurant: {
-    id: string
-    name: string
-    imageUrl: string
-    cuisine: string
-    rating: number
-    deliveryTime: string
-    address: string
-  }
+    id: string;
+    name: string;
+    imageUrl: string;
+    cuisine: string;
+    rating: number;
+    deliveryTime: string;
+    address: string;
+  };
 }
 
 export function RestaurantHeader({ restaurant }: RestaurantHeaderProps) {
   return (
     <div className="space-y-4">
       <div className="relative h-48 md:h-64 rounded-lg overflow-hidden">
-        <Image src={restaurant.imageUrl || "/placeholder.svg"} alt={restaurant.name} fill className="object-cover" />
+        <Image
+          src={restaurant.imageUrl || "/placeholder.svg"}
+          alt={restaurant.name}
+          fill
+          className="object-cover"
+        />
       </div>
 
       <div className="space-y-2">
@@ -44,5 +49,5 @@ export function RestaurantHeader({ restaurant }: RestaurantHeaderProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }

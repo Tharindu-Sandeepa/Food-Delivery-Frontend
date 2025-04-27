@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { LoginFormData, RegisterFormData } from "@/lib/types/auth";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "@/components/ui/use-toast";
 import { Mail } from "lucide-react";
@@ -37,6 +37,7 @@ export default function LoginPage() {
   const {
     register: registerRegister,
     handleSubmit: handleRegisterSubmit,
+    control,
     watch,
     formState: { errors: registerErrors },
   } = useForm<RegisterFormData>({
@@ -82,6 +83,7 @@ export default function LoginPage() {
   };
 
   const onRegister = async (data: RegisterFormData) => {
+    console.log("Register data:", data); // Debug log
     try {
       await signUp(data);
       router.push("/");
@@ -266,18 +268,26 @@ export default function LoginPage() {
                 {/* Role Selector */}
                 <div className="space-y-2">
                   <Label htmlFor="register-role">Register As</Label>
-                  <Select
-                    {...registerRegister("role", { required: "Role is required" })}
-                  >
-                    <SelectTrigger id="register-role">
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="customer">Customer</SelectItem>
-                      <SelectItem value="restaurant">Restaurant</SelectItem>
-                      <SelectItem value="delivery">Delivery</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    name="role"
+                    control={control}
+                    rules={{ required: "Role is required" }}
+                    render={({ field }) => (
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <SelectTrigger id="register-role">
+                          <SelectValue placeholder="Select role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="customer">Customer</SelectItem>
+                          <SelectItem value="restaurant">Restaurant</SelectItem>
+                          <SelectItem value="delivery">Delivery</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                   {registerErrors.role && (
                     <p className="text-sm text-destructive">{registerErrors.role.message}</p>
                   )}
@@ -302,23 +312,6 @@ export default function LoginPage() {
                     )}
                   </div>
                 )}
-
-                {/* Restaurant ID - Conditionally shown for restaurant */}
-                {/* {selectedRole === "restaurant" && (
-                  <div className="space-y-2">
-                    <Label htmlFor="register-restaurantId">Restaurant ID</Label>
-                    <Input
-                      id="register-restaurantId"
-                      {...registerRegister("restaurantId", {
-                        required: selectedRole === "restaurant" ? "Restaurant ID is required" : false,
-                      })}
-                      placeholder="Restaurant identifier"
-                    />
-                    {registerErrors.restaurantId && (
-                      <p className="text-sm text-destructive">{registerErrors.restaurantId.message}</p>
-                    )}
-                  </div>
-                )} */}
               </CardContent>
               <CardContent>
                 <Button type="submit" className="w-full" disabled={loading}>
