@@ -1,6 +1,10 @@
 import axios from "axios";
+import { BASE_URL_DELIVERIES, BASE_URL_ORDERS } from "./constants/Base_url";
 
-const API_BASE = process.env.NEXT_PUBLIC_DELIVERY_API || "http://localhost:3003/api/deliveries";
+const API_BASE = `${BASE_URL_DELIVERIES}/api/deliveries`;
+const token = localStorage.getItem("token") || "";
+axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+
 
 // Get all deliveries assigned to a delivery person
 export async function getDeliveriesByUser(userId: string) {
@@ -15,7 +19,7 @@ export async function getDeliveryById(deliveryId: string) {
 }
 
 export async function getOrderById(orderId: string) {
-    const res = await axios.get(`http://localhost:3001/api/orders/${orderId}`);
+    const res = await axios.get(`${BASE_URL_ORDERS}/api/orders/${orderId}`);
     console.log("Order data:", res.data);
     return res.data;
 }
