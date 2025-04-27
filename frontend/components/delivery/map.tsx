@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import "leaflet/dist/leaflet.css";
 import { updateOrderStatus2 } from "@/lib/delivery-api";
 import io from "socket.io-client";
+import { BASE_URL_DELIVERIES } from "@/lib/constants/Base_url";
 
 const icon = L.icon({
   iconUrl: "/images/delivery-bike.png",
@@ -115,7 +116,7 @@ export function DeliveryMap({ order }: DeliveryMapProps) {
   useEffect(() => {
     if (!isStarted) return;
 
-    const newSocket = io("http://localhost:3003", {
+    const newSocket = io(`${BASE_URL_DELIVERIES}`, {
       reconnection: true,
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,

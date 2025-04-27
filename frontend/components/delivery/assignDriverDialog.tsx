@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Loader2 } from "lucide-react"
+import { BASE_URL_ORDERS } from "@/lib/constants/Base_url"
 
 interface Address {
   lat: number
@@ -40,7 +41,7 @@ export function AssignDriverDialog({
   const assignDriver = async () => {
     setStatus('searching')
     try {
-      const response = await fetch(`http://localhost:3001/api/orders/${orderId}/ready`, {
+      const response = await fetch(`${BASE_URL_ORDERS}/api/orders/${orderId}/ready`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

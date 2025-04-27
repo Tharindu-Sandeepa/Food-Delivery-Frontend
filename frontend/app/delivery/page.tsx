@@ -21,7 +21,14 @@ export interface Order {
   deliveryAddress: Address;
   restaurantLocation: Address;
   items: OrderItem[];
-  status: "pending" | "preparing" | "ready" | "assigned" | "delivering" | "completed" | "cancelled"
+  status:
+    | "pending"
+    | "preparing"
+    | "ready"
+    | "assigned"
+    | "delivering"
+    | "completed"
+    | "cancelled";
   total: number;
   deliveryFee: number;
   subtotal: number;
@@ -34,9 +41,9 @@ export interface Order {
 }
 
 interface Address {
-  lat: number
-  lng: number
-  address: string
+  lat: number;
+  lng: number;
+  address: string;
 }
 
 export interface Delivery {
@@ -118,6 +125,8 @@ export default function DeliveryPage() {
       <DashboardHeader
         title="Delivery Dashboard"
         description="Manage your active deliveries"
+        imageUrl="https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80"
+        imageAvailable={true}
       />
 
       {loading ? (

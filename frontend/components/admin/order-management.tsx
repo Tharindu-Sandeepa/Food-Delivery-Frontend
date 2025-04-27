@@ -15,6 +15,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AssignDriverDialog } from "../delivery/assignDriverDialog";
 import { useToast } from "@/components/ui/use-toast";
+import { BASE_URL_ORDERS } from "@/lib/constants/Base_url";
 
 interface OrderItem {
   id: string;
@@ -77,32 +78,6 @@ export function OrderManagement({ initOrders }: OrderManagementProps) {
 
   const handleMarkReady = async (order: Order) => {
     setAssigningOrder(order);
-    // try {
-    //   const response = await fetch(`http://localhost:3001/api/orders/${order.orderId}/ready`, {
-    //     method: 'PATCH'
-    //   })
-    //   if (response.ok) {
-    //     setOrders(prev => prev.map(o =>
-    //       o.orderId === order.orderId ? { ...o, status: 'assigned' } : o
-    //     ))
-    //     //setAssigningOrder(order)
-
-    //     window.location.reload()
-
-    //     toast({
-    //       title: "Order marked as ready",
-    //       description: "Driver assign",
-    //     })
-    //   } else {
-    //     throw new Error(await response.text())
-    //   }
-    // } catch (error) {
-    //   toast({
-    //     title: "Failed to mark order as ready",
-    //     description: error instanceof Error ? error.message : "Unknown error",
-    //     variant: "destructive"
-    //   })
-    // }
   };
 
   const handleAssignmentComplete = (driver: {
@@ -137,7 +112,7 @@ export function OrderManagement({ initOrders }: OrderManagementProps) {
     status: Order["status"]
   ) => {
     try {
-      const response = await fetch(`/api/orders/${orderId}/status`, {
+      const response = await fetch(`${BASE_URL_ORDERS}/api/orders/${orderId}/status`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
