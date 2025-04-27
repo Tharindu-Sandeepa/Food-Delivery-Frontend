@@ -1,122 +1,126 @@
-"use client"
-import { useState, useEffect } from "react"
-import { RestaurantHeader } from "@/components/restaurant-header"
-import { MenuList } from "@/components/menu-list"
-import { Star, X } from "lucide-react"
-import { toast } from "sonner"
-import { notFound } from "next/navigation"
-import React from "react"
+"use client";
+
+import { useState, useEffect } from "react";
+import { RestaurantHeader } from "@/components/restaurant-header";
+import { MenuList } from "@/components/menu-list";
+import { Star, X } from "lucide-react";
+import { toast } from "sonner";
+import { notFound } from "next/navigation";
+import React from "react";
 
 interface Location {
-  latitude: number
-  longitude: number
+  latitude: number;
+  longitude: number;
 }
 
 interface Restaurant {
-  _id: string
-  name: string
-  imageUrl?: string | null
-  cuisineType: string
-  address: string
-  location: Location
-  isAvailable: boolean
-  rating: number
+  _id: string;
+  name: string;
+  imageUrl?: string | null;
+  cuisineType: string;
+  address: string;
+  location: Location;
+  isAvailable: boolean;
+  rating: number;
   openingHours?: {
-    open: string
-    close: string
-  }
-  deliveryZones: string[]
-  createdAt: string
+    open: string;
+    close: string;
+  };
+  deliveryZones: string[];
+  createdAt: string;
 }
 
 interface MenuItem {
-  id: string
-  name: string
-  description?: string
-  price: number
-  image: string
-  category: string
-  restaurantId: string
-  isVegetarian?: boolean
-  isVegan?: boolean
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  image: string;
+  category: string;
+  restaurantId: string;
+  isVegetarian?: boolean;
+  isVegan?: boolean;
 }
 
 interface Review {
-  _id: string
-  restaurantId: string
-  userId: string
-  rating: number
-  comment: string
-  createdAt: string
+  _id: string;
+  restaurantId: string;
+  userId: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+
+interface User {
+  _id: string;
+  name: string;
+  email: string;
 }
 
 const getImageSrc = (imageUrl?: string | null): string => {
   if (!imageUrl || typeof imageUrl !== "string" || !imageUrl.startsWith("/uploads/")) {
-    console.warn("Invalid imageUrl detected:", imageUrl)
-    return "/placeholder.svg"
+    console.warn("Invalid imageUrl detected:", imageUrl);
+    return "/placeholder.svg";
   }
-  return `http://localhost:3002${imageUrl}`
-}
-
-// Mock userId for testing
-const MOCK_USER_ID = "680d5112e11b13f755e9egg0" // Budget Kade's userId
+  return `http://localhost:3002${imageUrl}`;
+};
 
 // StarRating Component
 const StarRating = ({ rating, setRating, readOnly = false }: { rating: number; setRating?: (rating: number) => void; readOnly?: boolean }) => {
-  const stars = [1, 2, 3, 4, 5]
+  const stars = [1, 2, 3, 4, 5];
   return (
     <div className="flex space-x-1">
       {stars.map((star) => (
         <Star
           key={star}
-          className={`h-5 w-5 cursor-${readOnly ? 'default' : 'pointer'} transition-colors duration-200 ${
-            star <= rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'
+          className={`h-5 w-5 cursor-${readOnly ? "default" : "pointer"} transition-colors duration-200 ${
+            star <= rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
           }`}
           onClick={() => !readOnly && setRating && setRating(star)}
         />
       ))}
     </div>
-  )
-}
+  );
+};
 
 // ReviewForm Component
 const ReviewForm = ({ restaurantId, userId, onClose, onSubmit }: { restaurantId: string; userId: string; onClose: () => void; onSubmit: () => void }) => {
-  const [rating, setRating] = useState(0)
-  const [comment, setComment] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (rating === 0) {
-      toast.error("Please select a rating")
-      return
+      toast.error("Please select a rating");
+      return;
     }
     if (!comment.trim()) {
-      toast.error("Please enter a comment")
-      return
+      toast.error("Please enter a comment");
+      return;
     }
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
     try {
       const response = await fetch(`http://localhost:3002/restaurants/${restaurantId}/reviews`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ restaurantId, userId, rating, comment }),
-      })
+      });
       if (!response.ok) {
-        throw new Error("Failed to submit review")
+        throw new Error("Failed to submit review");
       }
-      toast.success("Review submitted successfully")
-      setRating(0)
-      setComment("")
-      onSubmit()
-      onClose()
+      toast.success("Review submitted successfully");
+      setRating(0);
+      setComment("");
+      onSubmit();
+      onClose();
     } catch (error: any) {
-      toast.error(error.message || "Failed to submit review")
+      toast.error(error.message || "Failed to submit review");
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -163,8 +167,8 @@ const ReviewForm = ({ restaurantId, userId, onClose, onSubmit }: { restaurantId:
         </form>
       </div>
     </div>
-  )
-}
+  );
+};
 
 // ReviewList Component
 const ReviewList = ({ reviews }: { reviews: Review[] }) => {
@@ -190,18 +194,39 @@ const ReviewList = ({ reviews }: { reviews: Review[] }) => {
         ))
       )}
     </div>
-  )
-}
+  );
+};
 
 export default function RestaurantPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = React.use(params) // Unwrap params Promise
-  const { id } = resolvedParams
-  const [restaurant, setRestaurant] = useState<Restaurant | null>(null)
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([])
-  const [reviews, setReviews] = useState<Review[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [showReviewForm, setShowReviewForm] = useState(false)
+  const resolvedParams = React.use(params); // Unwrap params Promise
+  const { id } = resolvedParams;
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [userLoading, setUserLoading] = useState(true);
+
+  // Initialize user from localStorage
+  useEffect(() => {
+    const initializeUser = () => {
+      try {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          const parsedUser: User = JSON.parse(storedUser);
+          setUser(parsedUser);
+        }
+      } catch (err) {
+        console.error("Error reading from local storage:", err);
+        toast.error("Failed to load user data");
+      } finally {
+        setUserLoading(false);
+      }
+    };
+    initializeUser();
+  }, []);
 
   // Fetch restaurant, menu, and reviews
   useEffect(() => {
@@ -210,20 +235,20 @@ export default function RestaurantPage({ params }: { params: Promise<{ id: strin
         // Fetch restaurant
         const restaurantRes = await fetch(`http://localhost:3002/restaurants/${id}`, {
           cache: "no-store",
-        })
+        });
         if (!restaurantRes.ok) {
-          console.error(`Restaurant fetch failed for ID: ${id}, status: ${restaurantRes.status}`)
-          throw new Error("Restaurant not found")
+          console.error(`Restaurant fetch failed for ID: ${id}, status: ${restaurantRes.status}`);
+          throw new Error("Restaurant not found");
         }
-        const restaurantData: Restaurant = await restaurantRes.json()
-        setRestaurant(restaurantData)
+        const restaurantData: Restaurant = await restaurantRes.json();
+        setRestaurant(restaurantData);
 
         // Fetch menu items
         const menuRes = await fetch(`http://localhost:3002/restaurants/menu?restaurantId=${id}`, {
           cache: "no-store",
-        })
+        });
         if (menuRes.ok) {
-          const rawMenuItems = await menuRes.json()
+          const rawMenuItems = await menuRes.json();
           if (Array.isArray(rawMenuItems)) {
             setMenuItems(
               rawMenuItems.map((item: any) => ({
@@ -237,55 +262,55 @@ export default function RestaurantPage({ params }: { params: Promise<{ id: strin
                 isVegetarian: item.isVegetarian || false,
                 isVegan: item.isVegan || false,
               }))
-            )
+            );
           } else {
-            console.error("Menu items response is not an array:", rawMenuItems)
+            console.error("Menu items response is not an array:", rawMenuItems);
           }
         } else {
           console.error(
             `Menu fetch failed for restaurant ID: ${id}, status: ${menuRes.status}, response:`,
             await menuRes.text()
-          )
+          );
         }
 
         // Fetch reviews
         const reviewsRes = await fetch(`http://localhost:3002/restaurants/${id}/reviews`, {
           cache: "no-store",
-        })
+        });
         if (reviewsRes.ok) {
-          const reviewsData = await reviewsRes.json()
-          setReviews(reviewsData)
+          const reviewsData = await reviewsRes.json();
+          setReviews(reviewsData);
         } else {
-          console.error(`Reviews fetch failed for restaurant ID: ${id}, status: ${reviewsRes.status}`)
+          console.error(`Reviews fetch failed for restaurant ID: ${id}, status: ${reviewsRes.status}`);
         }
       } catch (err: any) {
-        setError(err.message || "Failed to load restaurant data")
+        setError(err.message || "Failed to load restaurant data");
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    fetchData()
-  }, [id])
+    fetchData();
+  }, [id]);
 
   const handleReviewSubmitted = () => {
     // Refetch reviews after submission
     fetch(`http://localhost:3002/restaurants/${id}/reviews`, { cache: "no-store" })
       .then((res) => res.json())
       .then((reviewsData) => setReviews(reviewsData))
-      .catch((err) => console.error("Error refetching reviews:", err))
-  }
+      .catch((err) => console.error("Error refetching reviews:", err));
+  };
 
-  if (isLoading) {
+  if (isLoading || userLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
         Loading restaurant data...
       </div>
-    )
+    );
   }
 
   if (error || !restaurant) {
-    notFound()
+    notFound();
   }
 
   const validatedRestaurant = {
@@ -296,7 +321,7 @@ export default function RestaurantPage({ params }: { params: Promise<{ id: strin
     rating: restaurant.rating,
     deliveryTime: "30-45", // Placeholder
     address: restaurant.address,
-  }
+  };
 
   return (
     <main className="container mx-auto px-4 py-4 min-h-[calc(100vh-4rem)]">
@@ -304,17 +329,20 @@ export default function RestaurantPage({ params }: { params: Promise<{ id: strin
         <RestaurantHeader restaurant={validatedRestaurant} />
         <MenuList items={menuItems} />
         <div className="mt-8">
-          {/* Always show Add a Review button for testing with mock userId */}
-          <button
-            onClick={() => setShowReviewForm(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200"
-          >
-            Add a Review
-          </button>
-          {showReviewForm && (
+          {user ? (
+            <button
+              onClick={() => setShowReviewForm(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200"
+            >
+              Add a Review
+            </button>
+          ) : (
+            <p className="text-gray-500">Please log in to add a review.</p>
+          )}
+          {showReviewForm && user && (
             <ReviewForm
               restaurantId={restaurant._id}
-              userId={MOCK_USER_ID}
+              userId={user._id}
               onClose={() => setShowReviewForm(false)}
               onSubmit={handleReviewSubmitted}
             />
@@ -325,5 +353,5 @@ export default function RestaurantPage({ params }: { params: Promise<{ id: strin
         </div>
       </div>
     </main>
-  )
+  );
 }
