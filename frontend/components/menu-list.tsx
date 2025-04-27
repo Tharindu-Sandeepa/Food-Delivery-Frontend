@@ -24,6 +24,7 @@ interface MenuItem {
 interface CartItem {
   id: string;
   quantity: number;
+  restaurantId: string;
 }
 
 interface MenuListProps {
@@ -34,6 +35,8 @@ export function MenuList({ items }: MenuListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [itemToAdd, setItemToAdd] = useState<MenuItem | null>(null);
 
   const categories = [
     "all",
@@ -43,7 +46,6 @@ export function MenuList({ items }: MenuListProps) {
   const filteredItems = items.filter((item) => {
     const matchesSearch =
       item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      false ||
       item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       false;
     const matchesCategory =
@@ -55,7 +57,8 @@ export function MenuList({ items }: MenuListProps) {
   // Fetch cart on mount
   useEffect(() => {
     const fetchCart = async () => {
-      const userId = localStorage.getItem("userId");
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const userId = user.id;
       if (!userId) return;
 
       try {
@@ -68,6 +71,7 @@ export function MenuList({ items }: MenuListProps) {
             data.items.map((item: any) => ({
               id: item.id,
               quantity: item.quantity,
+              restaurantId: item.restaurantId,
             }))
           );
         }
@@ -78,8 +82,41 @@ export function MenuList({ items }: MenuListProps) {
     fetchCart();
   }, []);
 
+  const clearCart = async (userId: string) => {
+    console.log("Clearing cart for user:", userId);
+    try {
+      const response = await fetch(`http://localhost:3001/api/cart/${userId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to clear cart");
+      }
+      setCartItems([]);
+      toast({
+        title: "Cart Cleared",
+        description: "Previous cart items have been removed.",
+      });
+    } catch (error) {
+      console.error("Clear cart error:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to clear cart",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
   const addToCart = async (item: MenuItem) => {
-    const userId = localStorage.getItem("userId");
+    console.log(
+      "Attempting to add item:",
+      item.name,
+      "from restaurant:",
+      item.restaurantId
+    );
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const userId = user.id;
     if (!userId) {
       toast({
         title: "Error",
@@ -89,6 +126,47 @@ export function MenuList({ items }: MenuListProps) {
       return;
     }
 
+    // Check if cart has items from a different restaurant
+    const cartRestaurantId =
+      cartItems.length > 0 ? cartItems[0].restaurantId : null;
+    if (cartRestaurantId && cartRestaurantId !== item.restaurantId) {
+      console.log(
+        "Cart contains items from different restaurant:",
+        cartRestaurantId
+      );
+      setItemToAdd(item);
+      setShowModal(true);
+      return;
+    }
+
+    await addItemToCart(item, userId);
+  };
+
+  const handleModalConfirm = async () => {
+    if (!itemToAdd) return;
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const userId = user.id;
+    if (!userId) return;
+
+    try {
+      await clearCart(userId);
+      await addItemToCart(itemToAdd, userId);
+      setShowModal(false);
+      setItemToAdd(null);
+    } catch (error) {
+      console.error("Error handling cart replacement:", error);
+      setShowModal(false);
+    }
+  };
+
+  const handleModalCancel = () => {
+    console.log("User cancelled adding item from different restaurant");
+    setShowModal(false);
+    setItemToAdd(null);
+  };
+
+  const addItemToCart = async (item: MenuItem, userId: string) => {
+    console.log("Adding item to cart:", item.name);
     const cartItem = {
       id: item.id,
       name: item.name,
@@ -123,7 +201,10 @@ export function MenuList({ items }: MenuListProps) {
             i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
           );
         }
-        return [...prev, { id: item.id, quantity: 1 }];
+        return [
+          ...prev,
+          { id: item.id, quantity: 1, restaurantId: item.restaurantId },
+        ];
       });
 
       toast({
@@ -131,6 +212,7 @@ export function MenuList({ items }: MenuListProps) {
         description: `${item.name} added to cart!`,
       });
     } catch (error) {
+      console.error("Add item error:", error);
       toast({
         title: "Error",
         description:
@@ -141,7 +223,9 @@ export function MenuList({ items }: MenuListProps) {
   };
 
   const updateQuantity = async (itemId: string, newQuantity: number) => {
-    const userId = localStorage.getItem("userId");
+    console.log("Updating quantity for item:", itemId, "to:", newQuantity);
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const userId = user.id;
     if (!userId) {
       toast({
         title: "Error",
@@ -180,6 +264,7 @@ export function MenuList({ items }: MenuListProps) {
         description: `Updated quantity for item in cart.`,
       });
     } catch (error) {
+      console.error("Update quantity error:", error);
       toast({
         title: "Error",
         description:
@@ -295,6 +380,33 @@ export function MenuList({ items }: MenuListProps) {
           )}
         </TabsContent>
       </Tabs>
+
+      {showModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <Card className="w-full max-w-md  text-black p-6 rounded-lg shadow-lg">
+            <h3 className="text-lg font-semibold mb-4">Different Restaurant</h3>
+            <p className="text-sm mb-6">
+              Your cart contains items from another restaurant. Adding this item
+              will clear your current cart. Do you want to proceed?
+            </p>
+            <div className="flex justify-end space-x-4">
+              <Button
+                variant="outline"
+                className="text-black border-black hover:bg-slate-500 hover:text-white"
+                onClick={handleModalCancel}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="bg-red-500 text-white hover:bg-red-600"
+                onClick={handleModalConfirm}
+              >
+                Clear Cart & Add
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
