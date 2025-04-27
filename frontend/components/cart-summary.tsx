@@ -26,7 +26,8 @@ export function CartSummary() {
   const [subtotal, setSubtotal] = useState(0);
 
   const fetchCart = async () => {
-    const userId = localStorage.getItem("userId");
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const userId = user.id;
     if (!userId) {
       toast({
         title: "Error",
