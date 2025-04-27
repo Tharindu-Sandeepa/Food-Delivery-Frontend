@@ -1,62 +1,118 @@
-import Link from "next/link"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Users, Store, AlertTriangle, CheckCircle, XCircle, ShieldAlert } from "lucide-react"
+"use client";
+
+import Link from "next/link";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { fetchUsers } from "@/lib/api/users";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/components/ui/use-toast";
+import { Users, Store, AlertTriangle, CheckCircle, XCircle, ShieldAlert } from "lucide-react";
+import { User as BackendUser } from "@/lib/types/user";
 
 interface User {
-  id: string
-  name: string
-  email: string
-  role: string
-  status: "active" | "inactive" | "blocked"
-  createdAt: string
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  status: "active" | "inactive" | "blocked";
+  createdAt: string;
 }
 
 interface Restaurant {
-  id: string
-  name: string
-  image: string
-  cuisine: string
-  rating: number
-  status?: "active" | "blocked"
+  id: string;
+  name: string;
+  image: string;
+  cuisine: string;
+  rating: number;
+  status?: "active" | "blocked";
   owner?: {
-    id: string
-    name: string
-    email: string
-  }
+    id: string;
+    name: string;
+    email: string;
+  };
 }
 
 interface PendingRestaurant {
-  id: string
-  name: string
-  cuisine: string
-  address: string
+  id: string;
+  name: string;
+  cuisine: string;
+  address: string;
   owner: {
-    id: string
-    name: string
-    email: string
-  }
-  status: "pending" | "approved" | "rejected"
-  submittedAt: string
+    id: string;
+    name: string;
+    email: string;
+  };
+  status: "pending" | "approved" | "rejected";
+  submittedAt: string;
 }
 
 interface SystemAdminDashboardProps {
-  users: User[]
-  restaurants: Restaurant[]
-  pendingRestaurants: PendingRestaurant[]
+  restaurants: Restaurant[];
+  pendingRestaurants: PendingRestaurant[];
 }
 
-export function SystemAdminDashboard({ users, restaurants, pendingRestaurants }: SystemAdminDashboardProps) {
+// Map backend User to dashboard User
+const mapBackendUserToDashboardUser = (backendUser: BackendUser): User => ({
+  id: backendUser.id,
+  name: backendUser.name,
+  email: backendUser.email,
+  role: backendUser.role,
+  status: backendUser.isActive ? "active" : "blocked",
+  createdAt: backendUser.createdAt,
+});
+
+export function SystemAdminDashboard({ restaurants, pendingRestaurants }: SystemAdminDashboardProps) {
+  const { token } = useAuth();
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch users on mount
+  useEffect(() => {
+    const loadUsers = async () => {
+      if (!token) {
+        setError("Authentication token missing");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const response = await fetchUsers(token, {
+          page: 1,
+          limit: 100, // Fetch up to 100 users to avoid pagination issues
+        });
+        const mappedUsers = response.data.map(mapBackendUserToDashboardUser);
+        setUsers(mappedUsers);
+        setError(null);
+      } catch (err: any) {
+        console.error("Fetch users error:", err);
+        setError(err.response?.data?.error || "Failed to fetch users");
+        toast({
+          title: "Error",
+          description: err.response?.data?.error || "Failed to fetch users",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUsers();
+  }, [token]);
+
   // Calculate stats
-  const totalUsers = users.length
-  const activeUsers = users.filter((user) => user.status === "active").length
-  const blockedUsers = users.filter((user) => user.status === "blocked").length
+  const totalUsers = users.length;
+  const activeUsers = users.filter((user) => user.status === "active").length;
+  const blockedUsers = users.filter((user) => user.status === "blocked").length;
 
-  const totalRestaurants = restaurants.length
-  const activeRestaurants = restaurants.filter((r) => !r.status || r.status === "active").length
-  const blockedRestaurants = restaurants.filter((r) => r.status === "blocked").length
+  const totalRestaurants = restaurants.length;
+  const activeRestaurants = restaurants.filter((r) => !r.status || r.status === "active").length;
+  const blockedRestaurants = restaurants.filter((r) => r.status === "blocked").length;
 
-  const pendingApprovals = pendingRestaurants.filter((r) => r.status === "pending").length
+  const pendingApprovals = pendingRestaurants.filter((r) => r.status === "pending").length;
 
   return (
     <div className="space-y-6">
@@ -67,12 +123,18 @@ export function SystemAdminDashboard({ users, restaurants, pendingRestaurants }:
             <Users className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="dashboard-stat">
-              <div className="dashboard-stat-value">{totalUsers}</div>
-              <p className="dashboard-stat-label">
-                {activeUsers} active, {blockedUsers} blocked
-              </p>
-            </div>
+            {loading ? (
+              <Skeleton className="h-8 w-24" />
+            ) : error ? (
+              <p className="text-red-500 text-sm">Error loading users</p>
+            ) : (
+              <div className="dashboard-stat">
+                <div className="dashboard-stat-value">{totalUsers}</div>
+                <p className="dashboard-stat-label">
+                  {activeUsers} active, {blockedUsers} blocked
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -125,29 +187,39 @@ export function SystemAdminDashboard({ users, restaurants, pendingRestaurants }:
             <CardDescription>Latest user registrations and status changes</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {users.slice(0, 5).map((user) => (
-                <div key={user.id} className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{user.name}</p>
-                    <p className="text-sm text-muted-foreground">{user.email}</p>
+            {loading ? (
+              <div className="space-y-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
+            ) : error ? (
+              <p className="text-red-500 text-sm">Error loading user activity</p>
+            ) : (
+              <div className="space-y-4">
+                {users.slice(0, 5).map((user) => (
+                  <div key={user.id} className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">{user.name}</p>
+                      <p className="text-sm text-muted-foreground">{user.email}</p>
+                    </div>
+                    <div className="flex items-center">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs ${
+                          user.status === "active"
+                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
+                            : user.status === "blocked"
+                              ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100"
+                              : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100"
+                        }`}
+                      >
+                        {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs ${
-                        user.status === "active"
-                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
-                          : user.status === "blocked"
-                            ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100"
-                            : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100"
-                      }`}
-                    >
-                      {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
           <CardFooter>
             <Button asChild variant="outline" className="w-full">
@@ -192,5 +264,5 @@ export function SystemAdminDashboard({ users, restaurants, pendingRestaurants }:
         </Card>
       </div>
     </div>
-  )
+  );
 }

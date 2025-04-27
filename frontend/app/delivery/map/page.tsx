@@ -5,7 +5,7 @@ import { DashboardHeader } from "@/components/dashboard-header";
 import { DeliveryMap } from "@/components/delivery/map";
 
 import { getDeliveriesByUser, getOrderById } from "@/lib/delivery-api";
-import { useAuth } from "@/lib/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface OrderItem {
   id: string;

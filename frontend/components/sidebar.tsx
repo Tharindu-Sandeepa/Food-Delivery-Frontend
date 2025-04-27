@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { useAuth } from "@/lib/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Home,
   ShoppingCart,

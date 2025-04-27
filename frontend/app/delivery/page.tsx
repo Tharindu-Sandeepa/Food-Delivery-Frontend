@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { DeliveryDashboard } from "@/components/delivery/dashboard";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { getDeliveriesByUser, getOrderById } from "@/lib/delivery-api";
-import { useAuth } from "@/lib/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface OrderItem {
   id: string;

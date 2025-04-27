@@ -1,22 +1,34 @@
 import api from './axios';
-import { LoginFormData, RegisterFormData } from '../../lib/types/auth';
+import { LoginFormData, RegisterFormData, AuthResponse } from '../types/auth';
+import { User } from '../types/user';
 
-export const login = async (data: LoginFormData) => {
+export const login = async (data: LoginFormData): Promise<AuthResponse> => {
   const response = await api.post('/users/login', data);
-  return response.data;
+  return {
+    success: response.data.success,
+    token: response.data.token,
+    user: { ...response.data.user, id: response.data.user._id },
+  };
 };
 
-export const register = async (data: RegisterFormData) => {
+export const register = async (data: RegisterFormData): Promise<AuthResponse> => {
   const response = await api.post('/users/register', data);
-  return response.data;
+  return {
+    success: response.data.success,
+    token: response.data.token,
+    user: { ...response.data.user, id: response.data.user._id },
+  };
 };
 
-export const getMe = async () => {
-  const response = await api.get('/users/me');
-  return response.data;
+export const getMe = async (token: string): Promise<User> => {
+  const response = await api.get('/users/me', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return { ...response.data.data, id: response.data.data._id };
 };
 
 export const logout = async () => {
-  // You might need to implement this on backend too
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
   document.cookie = 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
 };
