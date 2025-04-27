@@ -21,7 +21,8 @@ export function CartList() {
   // Fetch cart items on mount
   useEffect(() => {
     const fetchCart = async () => {
-      const userId = localStorage.getItem("userId");
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const userId = user.id;
       if (!userId) {
         toast({
           title: "Error",
@@ -53,7 +54,8 @@ export function CartList() {
   }, []);
 
   const handleUpdateQuantity = async (id: string, change: number) => {
-    const userId = localStorage.getItem("userId");
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const userId = user.id;
     if (!userId) {
       toast({
         title: "Error",
@@ -101,7 +103,8 @@ export function CartList() {
   };
 
   const handleRemoveItem = async (id: string) => {
-    const userId = localStorage.getItem("userId");
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const userId = user.id;
     if (!userId) {
       toast({
         title: "Error",
