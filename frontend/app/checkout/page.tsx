@@ -46,7 +46,8 @@ export default function CheckoutPage() {
   // Fetch cart items and restaurant details on mount
   useEffect(() => {
     const fetchCart = async () => {
-      const userId = localStorage.getItem("userId");
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const userId = user.id;
       if (!userId) {
         toast({
           title: "Error",
@@ -110,7 +111,8 @@ export default function CheckoutPage() {
       return;
     }
 
-    const userId = localStorage.getItem("userId");
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const userId = user.id;
     if (!userId) {
       toast({
         title: "Error",
