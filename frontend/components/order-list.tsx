@@ -1,54 +1,56 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { MapPin } from "lucide-react"
+"use client";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { MapPin } from "lucide-react";
 
 interface OrderItem {
-  id: string
-  name: string
-  price: number
-  quantity: number
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
 }
 
 interface Order {
-  id: string
-  restaurantId: string
-  restaurantName: string
-  items: OrderItem[]
-  status: "pending" | "preparing" | "delivering" | "completed" | "cancelled"
-  total: number
-  createdAt: string
-  deliveryAddress: string
-  deliveryPersonId?: string
+  id: string;
+  restaurantId: string;
+  restaurantName: string;
+  items: OrderItem[];
+  status: "pending" | "preparing" | "delivering" | "completed" | "cancelled";
+  total: number;
+  createdAt: string;
+  deliveryAddress: string;
+  deliveryPersonId?: string;
 }
 
 interface OrderListProps {
-  orders: Order[]
+  orders: Order[];
 }
 
 export function OrderList({ orders }: OrderListProps) {
   const getStatusColor = (status: Order["status"]) => {
     switch (status) {
       case "pending":
-        return "bg-yellow-500"
+        return "bg-yellow-500";
       case "preparing":
-        return "bg-blue-500"
+        return "bg-blue-500";
       case "delivering":
-        return "bg-purple-500"
+        return "bg-purple-500";
       case "completed":
-        return "bg-green-500"
+        return "bg-green-500";
       case "cancelled":
-        return "bg-red-500"
+        return "bg-red-500";
       default:
-        return "bg-gray-500"
+        return "bg-gray-500";
     }
-  }
+  };
 
   const formatStatus = (status: Order["status"]) => {
-    return status.charAt(0).toUpperCase() + status.slice(1)
-  }
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
 
   if (orders.length === 0) {
     return (
@@ -57,7 +59,7 @@ export function OrderList({ orders }: OrderListProps) {
           <p className="text-muted-foreground">You don't have any orders yet</p>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -69,10 +71,13 @@ export function OrderList({ orders }: OrderListProps) {
               <div>
                 <CardTitle>{order.restaurantName}</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Order #{order.id.slice(0, 8)} • {new Date(order.createdAt).toLocaleDateString()}
+                  Order #{order.id.slice(0, 8)} •{" "}
+                  {new Date(order.createdAt).toLocaleDateString()}
                 </p>
               </div>
-              <Badge className={getStatusColor(order.status) + " text-white"}>{formatStatus(order.status)}</Badge>
+              <Badge className={getStatusColor(order.status) + " text-white"}>
+                {formatStatus(order.status)}
+              </Badge>
             </div>
           </CardHeader>
           <CardContent>
@@ -99,7 +104,6 @@ export function OrderList({ orders }: OrderListProps) {
                 <p>Delivery to: {order.deliveryAddress}</p>
               </div>
 
-              {/* Add tracking button for delivering orders */}
               {order.status === "delivering" && (
                 <Button asChild className="w-full sm:w-auto mt-2">
                   <Link href={`/tracking/${order.id}`}>
@@ -113,5 +117,5 @@ export function OrderList({ orders }: OrderListProps) {
         </Card>
       ))}
     </div>
-  )
+  );
 }

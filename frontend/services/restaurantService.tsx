@@ -1,9 +1,9 @@
 export interface Location {
     longitude: number
     latitude: number
-  }
-  
-  export interface Restaurant {
+}
+
+export interface Restaurant {
     _id: string
     name: string
     email: string
@@ -19,11 +19,12 @@ export interface Location {
     }
     deliveryZones: string[]
     createdAt: string
-  }
-  
-  export interface RestaurantFormData {
+}
+
+export interface RestaurantFormData {
     name: string
     email: string
+    id?: string
     address: string
     cuisineType: string
     openingHours: {
@@ -33,11 +34,25 @@ export interface Location {
     deliveryZones: string
     location: Location
     isAvailable: boolean
-  }
-  
-  const API_BASE_URL = "http://localhost:3002"
-  
-  export const restaurantService = {
+}
+
+const API_BASE_URL = "http://localhost:3002"
+
+export const restaurantService = {
+    // Fetch all restaurants
+    async getAllRestaurants(): Promise<Restaurant[]> {
+      try {
+        const response = await fetch(`${API_BASE_URL}/restaurants`)
+        if (!response.ok) {
+          throw new Error("Failed to fetch restaurants")
+        }
+        return await response.json()
+      } catch (error) {
+        console.error("Error fetching restaurants:", error)
+        throw error
+      }
+    },
+
     // Fetch restaurant by email
     async getRestaurantByEmail(email: string): Promise<Restaurant | null> {
       try {
@@ -52,7 +67,7 @@ export interface Location {
         throw error
       }
     },
-  
+
     // Create a new restaurant
     async createRestaurant(formData: RestaurantFormData, imageFile?: File): Promise<Restaurant> {
       try {
@@ -61,6 +76,9 @@ export interface Location {
         formDataToSend.append("email", formData.email)
         formDataToSend.append("address", formData.address)
         formDataToSend.append("cuisineType", formData.cuisineType)
+        if (formData.id) {
+          formDataToSend.append("id", formData.id);
+        }
         formDataToSend.append("openingHours", JSON.stringify(formData.openingHours))
         formDataToSend.append("deliveryZones", formData.deliveryZones)
         formDataToSend.append("location[latitude]", formData.location.latitude.toString())
@@ -69,24 +87,24 @@ export interface Location {
         if (imageFile) {
           formDataToSend.append("image", imageFile)
         }
-  
+
         const response = await fetch(`${API_BASE_URL}/restaurants`, {
           method: "POST",
           body: formDataToSend,
         })
-  
+
         if (!response.ok) {
           const errorData = await response.json()
           throw new Error(errorData.error || "Failed to create restaurant")
         }
-  
+
         return await response.json()
       } catch (error) {
         console.error("Error creating restaurant:", error)
         throw error
       }
     },
-  
+
     // Update an existing restaurant
     async updateRestaurant(id: string, formData: RestaurantFormData, imageFile?: File): Promise<Restaurant> {
       try {
@@ -103,31 +121,31 @@ export interface Location {
         if (imageFile) {
           formDataToSend.append("image", imageFile)
         }
-  
+
         const response = await fetch(`${API_BASE_URL}/restaurants/${id}`, {
           method: "PUT",
           body: formDataToSend,
         })
-  
+
         if (!response.ok) {
           const errorData = await response.json()
           throw new Error(errorData.error || "Failed to update restaurant")
         }
-  
+
         return await response.json()
       } catch (error) {
         console.error("Error updating restaurant:", error)
         throw error
       }
     },
-  
+
     // Delete a restaurant
     async deleteRestaurant(id: string): Promise<void> {
       try {
         const response = await fetch(`${API_BASE_URL}/restaurants/${id}`, {
           method: "DELETE",
         })
-  
+
         if (!response.ok) {
           throw new Error("Failed to delete restaurant")
         }
@@ -136,4 +154,4 @@ export interface Location {
         throw error
       }
     },
-  }
+}

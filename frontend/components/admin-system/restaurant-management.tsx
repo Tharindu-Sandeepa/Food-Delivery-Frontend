@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 import dynamic from "next/dynamic"
+import { restaurantService, Restaurant, RestaurantFormData } from "@/services/restaurantService"
 
 // Dynamically import the Map component to avoid SSR issues
 const MapWithNoSSR = dynamic(() => import("@/components/map").then((mod) => mod.Map), {
@@ -18,33 +19,11 @@ const MapWithNoSSR = dynamic(() => import("@/components/map").then((mod) => mod.
   loading: () => <div className="h-full w-full bg-gray-100 flex items-center justify-center">Loading map...</div>
 })
 
-interface Location {
-  longitude: number
-  latitude: number
-}
-
-interface Restaurant {
-  _id: string
-  name: string
-  imageUrl?: string | null // Allow null to match database
-  cuisineType: string
-  address: string
-  location: Location
-  isAvailable: boolean
-  rating: number
-  openingHours?: {
-    open: string
-    close: string
-  }
-  deliveryZones: string[]
-  createdAt: string
-}
-
 interface RestaurantManagementProps {
-  restaurants: Restaurant[]
+  restaurants?: Restaurant[] // Optional prop, as we'll fetch restaurants
 }
 
-export function RestaurantManagement({ restaurants: initialRestaurants }: RestaurantManagementProps) {
+export function RestaurantManagement({ restaurants: initialRestaurants = [] }: RestaurantManagementProps) {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -53,10 +32,13 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
   const [addressSearch, setAddressSearch] = useState("")
   const [mapKey, setMapKey] = useState(0)
   const [imageFile, setImageFile] = useState<File | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const addressInputRef = useRef<HTMLInputElement>(null)
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<RestaurantFormData>({
     name: "",
+    email: "",
     address: "",
     cuisineType: "",
     openingHours: {
@@ -71,17 +53,30 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
     isAvailable: true
   })
 
+  // Fetch restaurants on mount
   useEffect(() => {
-    // Validate and filter restaurants to ensure valid imageUrl
-    const validatedRestaurants = initialRestaurants.map(restaurant => {
-      if (typeof restaurant.imageUrl !== 'string' && restaurant.imageUrl != null) {
-        console.warn(`Invalid imageUrl for restaurant ${restaurant._id}:`, restaurant.imageUrl)
-        return { ...restaurant, imageUrl: null }
+    const fetchRestaurants = async () => {
+      try {
+        const fetchedRestaurants = await restaurantService.getAllRestaurants()
+        // Validate and filter restaurants to ensure valid imageUrl
+        const validatedRestaurants = fetchedRestaurants.map(restaurant => {
+          if (typeof restaurant.imageUrl !== 'string' && restaurant.imageUrl != null) {
+            console.warn(`Invalid imageUrl for restaurant ${restaurant._id}:`, restaurant.imageUrl)
+            return { ...restaurant, imageUrl: null }
+          }
+          return restaurant
+        })
+        setRestaurants(validatedRestaurants)
+      } catch (err: any) {
+        console.error("Error fetching restaurants:", err)
+        setError(err.message || "Failed to load restaurants")
+        toast.error(err.message || "Failed to load restaurants")
+      } finally {
+        setIsLoading(false)
       }
-      return restaurant
-    })
-    setRestaurants(validatedRestaurants)
-  }, [initialRestaurants])
+    }
+    fetchRestaurants()
+  }, [])
 
   const filteredRestaurants = restaurants.filter(
     (restaurant) =>
@@ -91,16 +86,9 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`http://localhost:3002/restaurants/${id}`, {
-        method: 'DELETE'
-      })
-      
-      if (response.ok) {
-        setRestaurants(restaurants.filter(restaurant => restaurant._id !== id))
-        toast.success("Restaurant deleted successfully")
-      } else {
-        throw new Error("Failed to delete restaurant")
-      }
+      await restaurantService.deleteRestaurant(id)
+      setRestaurants(restaurants.filter(restaurant => restaurant._id !== id))
+      toast.success("Restaurant deleted successfully")
     } catch (error) {
       console.error("Error deleting restaurant:", error)
       toast.error("Failed to delete restaurant")
@@ -111,6 +99,7 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
     setCurrentRestaurant(restaurant)
     setFormData({
       name: restaurant.name,
+      email: restaurant.email,
       address: restaurant.address,
       cuisineType: restaurant.cuisineType,
       openingHours: restaurant.openingHours || { open: "09:00", close: "21:00" },
@@ -128,6 +117,7 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
     setCurrentRestaurant(null)
     setFormData({
       name: "",
+      email: "",
       address: "",
       cuisineType: "",
       openingHours: {
@@ -155,54 +145,33 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
       return
     }
     
+    if (!formData.email.trim()) {
+      toast.error("Email is required")
+      return
+    }
+
     setIsSubmitting(true)
     
     try {
-      const formDataToSend = new FormData()
-      formDataToSend.append('name', formData.name)
-      formDataToSend.append('address', formData.address)
-      formDataToSend.append('cuisineType', formData.cuisineType)
-      formDataToSend.append('openingHours', JSON.stringify(formData.openingHours))
-      formDataToSend.append('deliveryZones', formData.deliveryZones)
-      formDataToSend.append('location[latitude]', formData.location.latitude.toString())
-      formDataToSend.append('location[longitude]', formData.location.longitude.toString())
-      formDataToSend.append('isAvailable', formData.isAvailable.toString())
-      if (imageFile) {
-        formDataToSend.append('image', imageFile)
+      const restaurantData: RestaurantFormData = {
+        ...formData,
+        deliveryZones: formData.deliveryZones // Already a string
       }
 
-      let response
+      let updatedRestaurant: Restaurant
       if (currentRestaurant) {
-        response = await fetch(`http://localhost:3002/restaurants/${currentRestaurant._id}`, {
-          method: 'PUT',
-          body: formDataToSend
-        })
+        updatedRestaurant = await restaurantService.updateRestaurant(currentRestaurant._id, restaurantData, imageFile || undefined)
+        setRestaurants(restaurants.map(r => r._id === currentRestaurant._id ? updatedRestaurant : r))
       } else {
-        response = await fetch('http://localhost:3002/restaurants', {
-          method: 'POST',
-          body: formDataToSend
-        })
+        updatedRestaurant = await restaurantService.createRestaurant(restaurantData, imageFile || undefined)
+        setRestaurants([...restaurants, updatedRestaurant])
       }
-
-      if (response.ok) {
-        const updatedRestaurant = await response.json()
-        
-        if (currentRestaurant) {
-          setRestaurants(restaurants.map(r => 
-            r._id === currentRestaurant._id ? updatedRestaurant : r
-          ))
-        } else {
-          setRestaurants([...restaurants, updatedRestaurant])
-        }
-        
-        setIsDialogOpen(false)
-        toast.success(`Restaurant ${currentRestaurant ? 'updated' : 'added'} successfully`)
-      } else {
-        throw new Error(`Failed to ${currentRestaurant ? 'update' : 'add'} restaurant`)
-      }
-    } catch (error) {
+      
+      setIsDialogOpen(false)
+      toast.success(`Restaurant ${currentRestaurant ? 'updated' : 'added'} successfully`)
+    } catch (error: any) {
       console.error("Error submitting form:", error)
-      toast.error(`Failed to ${currentRestaurant ? 'update' : 'add'} restaurant`)
+      toast.error(error.message || `Failed to ${currentRestaurant ? 'update' : 'add'} restaurant`)
     } finally {
       setIsSubmitting(false)
     }
@@ -285,17 +254,33 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
   }
 
   const getImageSrc = (imageUrl?: string | null): string => {
-    // Log the imageUrl to debug problematic values
     if (imageUrl === undefined || imageUrl === null || imageUrl === "" || typeof imageUrl !== "string") {
       console.warn("Invalid imageUrl detected:", imageUrl)
       return "/placeholder.svg"
     }
-    // Ensure the imageUrl starts with a slash and is a valid path
     if (!imageUrl.startsWith("/uploads/")) {
       console.warn("Unexpected imageUrl format:", imageUrl)
       return "/placeholder.svg"
     }
     return `http://localhost:3002${imageUrl}`
+  }
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        Loading restaurants...
+      </div>
+    )
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-screen text-red-500">
+        {error}
+      </div>
+    )
   }
 
   return (
@@ -413,6 +398,17 @@ export function RestaurantManagement({ restaurants: initialRestaurants }: Restau
                   id="name"
                   name="name"
                   value={formData.name}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
                   onChange={handleInputChange}
                   required
                 />

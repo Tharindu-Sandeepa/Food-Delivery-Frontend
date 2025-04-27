@@ -1,8 +1,14 @@
+"use client";
+
 import { AdminDashboard } from "@/components/admin/dashboard"
 import { orders } from "@/lib/mock-data"
 import { DashboardHeader } from "@/components/dashboard-header"
 
+import { useProtect } from "@/hooks/useProtect";
+
 export default function AdminPage() {
+   useProtect();
+
   return (
     <div className="space-y-6">
       <DashboardHeader title="Restaurant Dashboard" description="Manage your restaurant orders and performance" />

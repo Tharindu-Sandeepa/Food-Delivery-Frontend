@@ -18,7 +18,6 @@ const MapWithNoSSR = dynamic(() => import("@/components/map").then((mod) => mod.
   loading: () => <div className="h-full w-full bg-gray-100 flex items-center justify-center">Loading map...</div>
 })
 
-const OWNER_EMAIL = "pizzahut@gmail.com"
 const DEFAULT_CENTER: [number, number] = [51.505, -0.09] // Default to London
 const DEFAULT_ZOOM = 2
 
@@ -34,9 +33,11 @@ export default function RestaurantOnboardingPage() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const addressInputRef = useRef<HTMLInputElement>(null)
 
-  const initialFormData: RestaurantFormData = {
+  // Initialize formData with email set to empty string initially
+  const [formData, setFormData] = useState<RestaurantFormData>({
     name: "",
-    email: OWNER_EMAIL,
+    email: "",
+    id: "",
     address: "",
     cuisineType: "",
     openingHours: {
@@ -49,40 +50,67 @@ export default function RestaurantOnboardingPage() {
       latitude: 0
     },
     isAvailable: true
-  }
+  })
 
-  const [formData, setFormData] = useState<RestaurantFormData>(initialFormData)
-
-  // Fetch restaurant on mount
+  // Fetch user email and restaurant data on mount
   useEffect(() => {
-    const fetchRestaurant = async () => {
+    const initializeData = async () => {
       try {
-        const fetchedRestaurant = await restaurantService.getRestaurantByEmail(OWNER_EMAIL)
-        console.log("Fetched restaurant:", fetchedRestaurant)
-        if (fetchedRestaurant) {
-          // Check location validity for logging purposes
-          if (!fetchedRestaurant.location || 
-              typeof fetchedRestaurant.location.latitude !== 'number' || 
-              typeof fetchedRestaurant.location.longitude !== 'number' ||
-              !isValidCoordinates(fetchedRestaurant.location.latitude, fetchedRestaurant.location.longitude)) {
-            console.warn("Invalid or missing location in restaurant data:", {
-              location: fetchedRestaurant.location,
-              restaurant: fetchedRestaurant
-            })
+        // Read user data from localStorage
+        const storedUser = localStorage.getItem("user")
+        console.log("Stored user data:", storedUser)
+        const parsedUser = storedUser ? JSON.parse(storedUser) : null
+        console.log("Parsed user email:", parsedUser?.email)
+        console.log("Parsed fffff user :", parsedUser?._id)
+
+
+        if (!parsedUser?.email) {
+          throw new Error("User email not found in local storage")
+        }
+
+        // Update formData with the user's email
+        setFormData((prevFormData) => ({
+          ...prevFormData,
+          email: parsedUser.email,
+          id: parsedUser._id
+        }))
+
+        // Fetch restaurant data using the email
+        try {
+          const fetchedRestaurant = await restaurantService.getRestaurantByEmail(parsedUser.email)
+          console.log("Fetched restaurant:", fetchedRestaurant)
+          if (fetchedRestaurant) {
+            // Check location validity for logging purposes
+            if (
+              !fetchedRestaurant.location ||
+              typeof fetchedRestaurant.location.latitude !== "number" ||
+              typeof fetchedRestaurant.location.longitude !== "number" ||
+              !isValidCoordinates(fetchedRestaurant.location.latitude, fetchedRestaurant.location.longitude)
+            ) {
+              console.warn("Invalid or missing location in restaurant data:", {
+                location: fetchedRestaurant.location,
+                restaurant: fetchedRestaurant
+              })
+            }
+            setRestaurant(fetchedRestaurant)
+          } else {
+            console.log("No restaurant found for email:", parsedUser.email)
+            setRestaurant(null)
           }
-          setRestaurant(fetchedRestaurant)
-        } else {
-          console.log("No restaurant found for email:", OWNER_EMAIL)
-          setRestaurant(null)
+        } catch (err: any) {
+          console.error("Error fetching restaurant:", err)
+          setError(err.message)
         }
       } catch (err: any) {
-        console.error("Error fetching restaurant:", err)
-        setError(err.message)
+        console.error("Error initializing data:", err)
+        setError(err.message || "Failed to load user data")
+        toast.error(err.message || "Failed to load user data")
       } finally {
         setIsLoading(false)
       }
     }
-    fetchRestaurant()
+
+    initializeData()
   }, [])
 
   // Validate form fields
@@ -119,7 +147,22 @@ export default function RestaurantOnboardingPage() {
 
   // Reset form to initial state
   const handleReset = () => {
-    setFormData(initialFormData)
+    setFormData({
+      ...formData,
+      name: "",
+      address: "",
+      cuisineType: "",
+      openingHours: {
+        open: "09:00",
+        close: "21:00"
+      },
+      deliveryZones: "",
+      location: {
+        longitude: 0,
+        latitude: 0
+      },
+      isAvailable: true
+    })
     setAddressSearch("")
     setImageFile(null)
     setFormErrors({})
@@ -185,7 +228,22 @@ export default function RestaurantOnboardingPage() {
       try {
         await restaurantService.deleteRestaurant(restaurant._id)
         setRestaurant(null)
-        setFormData(initialFormData)
+        setFormData({
+          ...formData,
+          name: "",
+          address: "",
+          cuisineType: "",
+          openingHours: {
+            open: "09:00",
+            close: "21:00"
+          },
+          deliveryZones: "",
+          location: {
+            longitude: 0,
+            latitude: 0
+          },
+          isAvailable: true
+        })
         setAddressSearch("")
         setImageFile(null)
         setFormErrors({})
@@ -339,7 +397,7 @@ export default function RestaurantOnboardingPage() {
           <CardHeader>
             <CardTitle>Register Your Restaurant</CardTitle>
             <CardDescription>
-              No restaurant is associated with {OWNER_EMAIL}. Please fill out the form below to register your restaurant.
+              No restaurant is associated with {formData.email}. Please fill out the form below to register your restaurant.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -477,7 +535,6 @@ export default function RestaurantOnboardingPage() {
 
                 <div className="h-64 rounded-md overflow-hidden border relative">
                   <MapWithNoSSR
-                    // Removed mapId as it is not part of MapProps
                     center={mapCenter}
                     zoom={mapZoom}
                     onClick={handleMapClick}
@@ -615,21 +672,6 @@ export default function RestaurantOnboardingPage() {
               <p>{restaurant.rating.toFixed(1)} / 5</p>
             </div>
           </div>
-
-          {/* <div className="h-64 rounded-md overflow-hidden border">
-            <MapWithNoSSR
-              center={mapCenter}
-              zoom={mapZoom}
-              markerPosition={
-                restaurant.location && isValidCoordinates(restaurant.location.latitude, restaurant.location.longitude)
-                  ? [restaurant.location.latitude, restaurant.location.longitude]
-                  : null
-              }
-            />
-            {(!restaurant.location || !isValidCoordinates(restaurant.location.latitude, restaurant.location.longitude)) && (
-              <p className="text-yellow-500 text-sm mt-1">Invalid location data. Please edit to set a valid location.</p>
-            )}
-          </div> */}
 
           <div className="flex gap-2">
             <Button onClick={handleEdit}>
