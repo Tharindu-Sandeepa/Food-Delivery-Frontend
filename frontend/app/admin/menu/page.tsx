@@ -3,6 +3,7 @@ import { useState, useEffect } from "react"
 import { MenuManagement } from "@/components/admin/menu-management"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { useAuth } from "@/hooks/useAuth"
+import Link from "next/link"
 
 export default function MenuManagementPage() {
   const [restaurantId, setRestaurantId] = useState<string | null>(null)
@@ -34,7 +35,7 @@ export default function MenuManagementPage() {
   useEffect(() => {
     const fetchRestaurantByEmail = async () => {
       if (!ownerEmail) {
-        setError("No user email found")
+        setError("No user email found. Please log in.")
         setIsLoading(false)
         return
       }
@@ -43,9 +44,9 @@ export default function MenuManagementPage() {
         const response = await fetch(`http://localhost:3002/restaurants/email/${encodeURIComponent(ownerEmail)}`)
         if (!response.ok) {
           if (response.status === 404) {
-            throw new Error(`Restaurant not found for email: ${ownerEmail}`)
+            throw new Error("No restaurant found. Please register a restaurant first to add menus.")
           }
-          throw new Error("Failed to fetch restaurant")
+          throw new Error("Failed to fetch restaurant data")
         }
         const restaurant = await response.json()
         setRestaurantId(restaurant._id)
@@ -70,8 +71,16 @@ export default function MenuManagementPage() {
 
   if (error || !restaurantId) {
     return (
-      <div className="flex justify-center items-center h-screen text-red-500">
-        {error || "Failed to load restaurant data"}
+      <div className="flex flex-col justify-center items-center h-screen text-red-500 space-y-4">
+        <p>{error || "Failed to load restaurant data"}</p>
+        {error?.includes("Please register a restaurant") && (
+          <Link
+            href="/admin/restaurant" 
+            className="text-blue-500 underline hover:text-blue-700"
+          >
+            Register a Restaurant
+          </Link>
+        )}
       </div>
     )
   }

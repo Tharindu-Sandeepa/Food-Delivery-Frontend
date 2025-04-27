@@ -25,7 +25,7 @@ interface User {
 }
 
 export default function Home() {
-  const { user: authUser, loading: authLoading, error: authError, login, logout } = useAuth()
+  const { user: authUser, loading: authLoading, error: authError, signIn, logout } = useAuth()
   const [restaurants, setRestaurants] = useState<any[]>([])
   const [filteredRestaurants, setFilteredRestaurants] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState("")
@@ -143,15 +143,15 @@ export default function Home() {
   }
 
   // Custom login handler
-  const handleLogin = async (email: string, password: string) => {
-    try {
-      await login(email, password)
-      // User is set in local storage via authUser effect
-    } catch (err: any) {
-      console.error("Login error:", err)
-      toast.error(err.message || "Failed to login")
-    }
-  }
+  // const handleLogin = async (email: string, password: string) => {
+  //   try {
+  //     await login(email, password)
+  //     // User is set in local storage via authUser effect
+  //   } catch (err: any) {
+  //     console.error("Login error:", err)
+  //     toast.error(err.message || "Failed to login")
+  //   }
+  // }
 
   // Custom logout handler
   const handleLogout = async () => {
@@ -167,22 +167,24 @@ export default function Home() {
 
   return (
     <>
-      <main className="min-h-[calc(100vh-4rem)]">
+        <main className="min-h-[calc(100vh-4rem)]">
         {/* Auth status display */}
         <div className="container mx-auto px-4 pt-4">
-          {loading || authLoading ? (
+          {loading ? (
             <p>Loading user...</p>
           ) : user ? (
             <div className="flex items-center gap-4">
               <p>Welcome, {user.name}!</p>
-              <Button variant="outline" onClick={handleLogout}>
+              <Button variant="outline" onClick={logout}>
                 Logout
               </Button>
             </div>
           ) : (
             <Button
               variant="outline"
-              onClick={() => handleLogin("test@example.com", "password")}
+              onClick={() =>
+                signIn({ email: "test@example.com", password: "password" }) 
+              }
             >
               Demo Login
             </Button>

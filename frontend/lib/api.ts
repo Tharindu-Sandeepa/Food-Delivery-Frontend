@@ -1,5 +1,5 @@
 // Base API configuration
-const API_BASE_URL = "http://localhost:5002/api"
+const API_BASE_URL = "http://localhost:3005/api"
 
 // Helper function for handling API responses
 async function handleResponse(response: Response) {
