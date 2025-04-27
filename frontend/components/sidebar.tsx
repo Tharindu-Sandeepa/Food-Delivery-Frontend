@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { ThemeToggle } from "@/components/theme-toggle"
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Home,
@@ -16,7 +16,7 @@ import {
   LayoutDashboard,
   UtensilsCrossed,
   Building2,
-  TruckIcon as TruckDelivery,
+  Truck as TruckDelivery,
   Map,
   Users,
   Store,
@@ -25,18 +25,23 @@ import {
   ChevronLeft,
   ChevronRight,
   Bell,
-  UserCircle2Icon,
+  User as UserCircle2Icon,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface SidebarProps {
   role: "customer" | "restaurant" | "delivery" | "admin";
 }
 
+// Helper to capitalize role
+const capitalize = (str: string) =>
+  str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+
 export function Sidebar({ role }: SidebarProps) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const { logout, user } = useAuth();
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -51,15 +56,10 @@ export function Sidebar({ role }: SidebarProps) {
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
-  const [userName, setUserName] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-
-  useEffect(() => {
-    const name = localStorage.getItem("userName");
-    const email = localStorage.getItem("userEmail");
-    setUserName(name);
-    setUserEmail(email);
-  }, []);
+  // Get user name, email, and role with fallbacks
+  const userName = user?.name || "User";
+  const userEmail = user?.email || "No email";
+  const userRole = user?.role ? capitalize(user.role) : "Unknown";
 
   const customerLinks = [
     { href: "/", label: "Home", icon: Home },
@@ -123,6 +123,32 @@ export function Sidebar({ role }: SidebarProps) {
         </div>
         <ScrollArea className="h-[calc(100vh-4rem)] pb-10">
           <div className="flex flex-col gap-2 p-4">
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-primary">Hello, {userName}!</h3>
+              <div
+                className="mt-2 rounded-md bg-muted p-3 flex items-center gap-3"
+                aria-describedby="user-details"
+              >
+                <img
+                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=random`}
+                  alt={`${userName}'s profile`}
+                  className="w-10 h-10 rounded-full object-cover"
+                />
+                <div id="user-details">
+                  <div className="text-sm font-semibold">{userName}</div>
+                  <div className="text-xs text-muted-foreground truncate max-w-[200px]">
+                    {userEmail}
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="mt-1 text-xs"
+                    aria-label={`User role: ${userRole}`}
+                  >
+                    {userRole}
+                  </Badge>
+                </div>
+              </div>
+            </div>
             {links.map((link) => {
               const Icon = link.icon;
               return (
@@ -139,7 +165,7 @@ export function Sidebar({ role }: SidebarProps) {
                 </Link>
               );
             })}
-            <div className="mt-auto pt-4 border-t">
+            <div className="mt-4 pt-4 border-t">
               <Button
                 variant="outline"
                 className="w-full justify-start"
@@ -216,23 +242,34 @@ export function Sidebar({ role }: SidebarProps) {
           })}
         </div>
       </ScrollArea>
-      {!isCollapsed && userName && userEmail && (
-            <div className="mt-6 w-full rounded-md bg-muted p-3 flex items-center gap-3">
+      {!isCollapsed && (
+        <div className="mt-6 p-4">
+          <div
+            className="rounded-md bg-muted p-3 flex items-center gap-3"
+            aria-describedby="user-details"
+          >
             <img
-              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(userName || "")}&background=random`}
-              alt="Profile"
+              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=random`}
+              alt={`${userName}'s profile`}
               className="w-10 h-10 rounded-full object-cover"
             />
-            <div>
+            <div id="user-details">
               <div className="text-sm font-semibold">{userName}</div>
-              <div className="text-xs text-muted-foreground truncate">
-              {userEmail}
+              <div className="text-xs text-muted-foreground truncate max-w-[180px]">
+                {userEmail}
               </div>
+              <Badge
+                variant="outline"
+                className="mt-1 text-xs"
+                aria-label={`User role: ${userRole}`}
+              >
+                {userRole}
+              </Badge>
             </div>
-            </div>
-        )}
+          </div>
+        </div>
+      )}
       <div className={cn("border-t p-4", isCollapsed && "flex justify-center")}>
-      
         <div
           className={cn("flex items-center gap-2", isCollapsed && "flex-col")}
         >
@@ -253,7 +290,6 @@ export function Sidebar({ role }: SidebarProps) {
             </Button>
           )}
         </div>
-        
       </div>
     </div>
   );

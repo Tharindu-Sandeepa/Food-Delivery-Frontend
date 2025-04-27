@@ -32,17 +32,44 @@ export default function ResetPasswordPage() {
 
   const password = watch("password");
 
+  // Reusable function for role-based redirection
+  const redirectByRole = (role: string) => {
+    switch (role) {
+      case "customer":
+        router.push("/");
+        break;
+      case "admin":
+        router.push("/admin-system");
+        break;
+      case "restaurant":
+        router.push("/admin");
+        break;
+      case "delivery":
+        router.push("/delivery");
+        break;
+      default:
+        console.warn(`Unknown role: ${role}`);
+        router.push("/");
+    }
+  };
+
   const onSubmit = async (data: ResetPasswordFormData) => {
     try {
-      await resetPassword(token as string, data.password);
+      const response = await resetPassword(token as string, data.password);
+      const { role } = response.user;
       setSuccess(true);
       toast({
         title: "Success",
         description: "Your password has been reset successfully.",
       });
-      setTimeout(() => router.push("/"), 2000);
-    } catch (err) {
+      setTimeout(() => redirectByRole(role), 2000);
+    } catch (err: any) {
       console.error("Reset password error:", err);
+      toast({
+        title: "Reset Password Failed",
+        description: err.response?.data?.error || "Unable to reset password. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -62,9 +89,9 @@ export default function ResetPasswordPage() {
           {success ? (
             <div className="text-center space-y-4">
               <p className="text-sm text-muted-foreground">
-                You will be redirected to the dashboard shortly.
+                You will be redirected to your dashboard shortly.
               </p>
-              <Button onClick={() => router.push("/dashboard")}>
+              <Button onClick={() => redirectByRole("customer")}>
                 Go to Dashboard
               </Button>
             </div>
