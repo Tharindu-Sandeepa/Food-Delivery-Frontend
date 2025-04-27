@@ -24,6 +24,7 @@ export interface Restaurant {
 export interface RestaurantFormData {
     name: string
     email: string
+    id?: string
     address: string
     cuisineType: string
     openingHours: {
@@ -75,6 +76,9 @@ export const restaurantService = {
         formDataToSend.append("email", formData.email)
         formDataToSend.append("address", formData.address)
         formDataToSend.append("cuisineType", formData.cuisineType)
+        if (formData.id) {
+          formDataToSend.append("id", formData.id);
+        }
         formDataToSend.append("openingHours", JSON.stringify(formData.openingHours))
         formDataToSend.append("deliveryZones", formData.deliveryZones)
         formDataToSend.append("location[latitude]", formData.location.latitude.toString())

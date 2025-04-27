@@ -59,7 +59,7 @@ const getImageSrc = (imageUrl?: string | null): string => {
 }
 
 // Mock userId for testing
-const MOCK_USER_ID = "680d5112e11b13f755e9eec0" // Budget Kade's userId
+const MOCK_USER_ID = "680d5112e11b13f755e9egg0" // Budget Kade's userId
 
 // StarRating Component
 const StarRating = ({ rating, setRating, readOnly = false }: { rating: number; setRating?: (rating: number) => void; readOnly?: boolean }) => {
