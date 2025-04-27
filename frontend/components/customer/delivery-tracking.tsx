@@ -7,6 +7,9 @@ import L from "leaflet";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import  io from "socket.io-client";
 import "leaflet/dist/leaflet.css";
+import { BASE_URL_DELIVERIES } from "@/lib/constants/Base_url";
+
+
 
 const icon = L.icon({
   iconUrl: "/images/delivery-bike.png",
@@ -52,7 +55,7 @@ export function CustomerDeliveryMap({
 
   useEffect(() => {
     addDebugLog(`[INIT] Creating socket connection`);
-    const newSocket = io("http://localhost:3003", {
+    const newSocket = io(`${BASE_URL_DELIVERIES}`, {
       reconnection: true,
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
@@ -65,9 +68,9 @@ export function CustomerDeliveryMap({
 
     const fetchRoute = async () => {
       try {
-        addDebugLog(`[ROUTE] Fetching route for delivery ${deliveryId}`);
+        // addDebugLog(`[ROUTE] Fetching route for delivery ${deliveryId}`);
         const response = await fetch(
-          `http://localhost:3003/api/deliveries/${deliveryId}/route`
+          `${BASE_URL_DELIVERIES}/api/deliveries/${deliveryId}/route`
         );
         const data = await response.json();
         setRoute(data.route);
@@ -92,7 +95,7 @@ export function CustomerDeliveryMap({
     fetchRoute();
 
     return () => {
-      addDebugLog(`[CLEANUP] Disconnecting socket`);
+      // addDebugLog(`[CLEANUP] Disconnecting socket`);
       newSocket.disconnect();
     };
   }, [deliveryId, customerId]);
@@ -102,17 +105,17 @@ export function CustomerDeliveryMap({
 
     const onConnect = () => {
       setConnectionStatus("connected");
-      addDebugLog(`[SOCKET] Connected with ID: ${socket.id}`);
+      // addDebugLog(`[SOCKET] Connected with ID: ${socket.id}`);
       socket.emit("customer_subscribe", {
         customerId,
         deliveryId,
       });
-      addDebugLog(`[SUBSCRIBE] Sent subscription for delivery ${deliveryId}`);
+      // addDebugLog(`[SUBSCRIBE] Sent subscription for delivery ${deliveryId}`);
     };
 
     const onDisconnect = () => {
       setConnectionStatus("disconnected");
-      addDebugLog(`[SOCKET] Disconnected`);
+      // addDebugLog(`[SOCKET] Disconnected`);
     };
 
     const onConnectError = (err: any) => {
@@ -123,9 +126,9 @@ export function CustomerDeliveryMap({
       position: { lat: number; lng: number };
       progress: number;
     }) => {
-      addDebugLog(`[UPDATE] Received position update`);
-      addDebugLog(`Position: ${JSON.stringify(data.position)}`);
-      addDebugLog(`Progress: ${data.progress}%`);
+      // addDebugLog(`[UPDATE] Received position update`);
+      // addDebugLog(`Position: ${JSON.stringify(data.position)}`);
+      // addDebugLog(`Progress: ${data.progress}%`);
       
       const newPos: [number, number] = [data.position.lat, data.position.lng];
       setPrevPos(driverPos);
@@ -148,7 +151,7 @@ export function CustomerDeliveryMap({
     }, 25000);
 
     return () => {
-      addDebugLog(`[CLEANUP] Removing socket listeners`);
+      // addDebugLog(`[CLEANUP] Removing socket listeners`);
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
       socket.off("connect_error", onConnectError);

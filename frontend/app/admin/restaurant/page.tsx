@@ -37,6 +37,7 @@ export default function RestaurantOnboardingPage() {
   const [formData, setFormData] = useState<RestaurantFormData>({
     name: "",
     email: "",
+    id: "",
     address: "",
     cuisineType: "",
     openingHours: {
@@ -60,6 +61,8 @@ export default function RestaurantOnboardingPage() {
         console.log("Stored user data:", storedUser)
         const parsedUser = storedUser ? JSON.parse(storedUser) : null
         console.log("Parsed user email:", parsedUser?.email)
+        console.log("Parsed fffff user :", parsedUser?._id)
+
 
         if (!parsedUser?.email) {
           throw new Error("User email not found in local storage")
@@ -68,7 +71,8 @@ export default function RestaurantOnboardingPage() {
         // Update formData with the user's email
         setFormData((prevFormData) => ({
           ...prevFormData,
-          email: parsedUser.email
+          email: parsedUser.email,
+          id: parsedUser._id
         }))
 
         // Fetch restaurant data using the email

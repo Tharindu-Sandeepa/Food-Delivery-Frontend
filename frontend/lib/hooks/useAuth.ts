@@ -34,7 +34,13 @@ export const useAuth = () => {
         throw new Error(data.message || 'Login failed');
       }
 
-      localStorage.setItem('userId', data.user._id);
+      console.log("LOGIN USER DEATAILS", data);
+
+      localStorage.setItem("userId", data.user._id);
+      localStorage.setItem("userRole", data.user.role);
+      localStorage.setItem("userName", data.user.name);
+      localStorage.setItem("userEmail", data.user.email);
+      localStorage.setItem("token", data.token);
 
       setUser(data.user);
       return data.user;
@@ -84,6 +90,11 @@ export const useAuth = () => {
         method: 'POST',
         credentials: 'include',
       });
+      localStorage.removeItem("token");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("userRole");
+      localStorage.removeItem("userName");
+      localStorage.removeItem("userEmail");
       setUser(null);
       router.push('/login');
     } catch (err) {
