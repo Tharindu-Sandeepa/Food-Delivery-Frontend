@@ -24,6 +24,7 @@ interface Order {
   createdAt: string;
   deliveryAddress: string;
   deliveryPersonId?: string;
+  deliveryId?: string;
 }
 
 interface OrderListProps {
@@ -106,7 +107,7 @@ export function OrderList({ orders }: OrderListProps) {
 
               {order.status === "delivering" && (
                 <Button asChild className="w-full sm:w-auto mt-2">
-                  <Link href={`/tracking/${order.id}`}>
+                  <Link href={`/tracking/${order.deliveryId}`}>
                     <MapPin className="mr-2 h-4 w-4" />
                     Track Delivery
                   </Link>

@@ -22,6 +22,7 @@ interface Order {
   createdAt: string;
   deliveryAddress: string;
   deliveryPersonId?: string;
+  deliveryId?: string;
 }
 
 export default function OrdersPage() {
@@ -68,6 +69,7 @@ export default function OrdersPage() {
           createdAt: order.createdAt,
           deliveryAddress: order.deliveryAddress.address,
           deliveryPersonId: order.deliveryPersonId,
+          deliveryId: order.deliveryId,
         }));
 
         setOrders(mappedOrders);

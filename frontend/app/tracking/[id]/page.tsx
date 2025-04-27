@@ -1,28 +1,70 @@
 "use client";
 
-import { use } from "react";
+import { use, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { Suspense } from "react";
+import { BASE_URL_DELIVERIES, BASE_URL_ORDERS } from "@/lib/constants/Base_url";
 
-const CustomerDeliveryMap = dynamic(() => import("@/components/customer/delivery-tracking").then(mod => mod.CustomerDeliveryMap), {
-  ssr: false,
-  loading: () => <p>Loading map...</p>,
-});
+const CustomerDeliveryMap = dynamic(
+  () =>
+    import("@/components/customer/delivery-tracking").then(
+      (mod) => mod.CustomerDeliveryMap
+    ),
+  {
+    ssr: false,
+    loading: () => <p>Loading map...</p>,
+  }
+);
 
-export default function TrackingPage({ params }: { params: Promise<{ id: string }> }) {
+export default function TrackingPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id: deliveryId } = use(params);
-  const driverId = "6807323213c5beffbfde777f";
-  const restaurantAddress = {
-    lat: 6.9061,
-    lng: 79.9696,
-    address: "No 56, New Kandy Road, Malabe",
+
+  const [driverId, setDriverId] = useState("");
+  const [restaurantLocation, setRestaurantLocation] = useState({
+    lat: 0,
+    lng: 0,
+    address: "",
+  });
+  const [deliveryAddress, setDeliveryAddress] = useState({
+    lat: 0,
+    lng: 0,
+    address: "",
+  });
+
+  const fetchDeliveryDetails = async (deliveryId: string) => {
+    const response = await fetch(
+      `${BASE_URL_ORDERS}/api/orders/deliveryID/${deliveryId}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    if (!response.ok) {
+      throw new Error("Failed to fetch delivery details");
+    }
+    const data = await response.json();
+    console.log("Delivery details:", data);
+    setDriverId(data.deliveryPersonId);
+    setRestaurantLocation(data.restaurantLocation);
+    setDeliveryAddress(data.deliveryAddress);
   };
-  const deliveryAddress = {
-    lat: 6.898,
-    lng: 79.9223,
-    address: "456 Elm St, New York, NY",
-  };
-  const customerId = "6808d9e1fcb926c46613fb00";
+
+  console.log("Delivery ID:", deliveryId);
+  console.log("Driver ID:", driverId);
+  console.log("Restaurant Location:", restaurantLocation);
+  console.log("Delivery Address:", deliveryAddress);
+
+  useEffect(() => {
+    fetchDeliveryDetails(deliveryId);
+  }, [deliveryId]);
+
+  const customerId = localStorage.getItem("userId") || "";
 
   return (
     <main className="container mx-auto px-4 py-6 min-h-[calc(100vh-4rem)]">
@@ -38,7 +80,7 @@ export default function TrackingPage({ params }: { params: Promise<{ id: string 
           <CustomerDeliveryMap
             deliveryId={deliveryId}
             driverId={driverId}
-            restaurantAddress={restaurantAddress}
+            restaurantAddress={restaurantLocation}
             deliveryAddress={deliveryAddress}
             customerId={customerId}
           />

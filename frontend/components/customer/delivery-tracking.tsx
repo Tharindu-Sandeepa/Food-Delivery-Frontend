@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import  io from "socket.io-client";
 import "leaflet/dist/leaflet.css";
 import { BASE_URL_DELIVERIES } from "@/lib/constants/Base_url";
+import { useRouter } from "next/navigation";
 
 
 
@@ -47,6 +48,7 @@ export function CustomerDeliveryMap({
   const [socket, setSocket] = useState<any | null>(null);
   const [connectionStatus, setConnectionStatus] = useState("disconnected");
   const [debugLog, setDebugLog] = useState<string[]>([]);
+  const routes = useRouter();
 
   const addDebugLog = (message: string) => {
     console.log(message);
@@ -155,8 +157,9 @@ export function CustomerDeliveryMap({
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
       socket.off("connect_error", onConnectError);
-      socket.off("position_update", positionHandler);
+      socket.off("position_update", positionHandler);      
       clearInterval(pingInterval);
+      routes.push("/orders")
     };
   }, [socket, deliveryId, driverPos]);
 
@@ -222,18 +225,34 @@ export function CustomerDeliveryMap({
             previousPosition={prevPos}
             duration={1000}
           />
-          <Marker position={[restaurantAddress.lat, restaurantAddress.lng]}>
+            <Marker
+            position={[restaurantAddress.lat, restaurantAddress.lng]}
+            icon={L.icon({
+              iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png", // Example restaurant icon
+              iconSize: [40, 40],
+              iconAnchor: [20, 40],
+              popupAnchor: [0, -40],
+            })}
+            >
             <Popup>
               <div className="font-semibold">Restaurant</div>
               <div className="text-sm">{restaurantAddress.address}</div>
             </Popup>
-          </Marker>
-          <Marker position={[deliveryAddress.lat, deliveryAddress.lng]}>
+            </Marker>
+            <Marker
+            position={[deliveryAddress.lat, deliveryAddress.lng]}
+            icon={L.icon({
+              iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png", // Example home icon
+              iconSize: [40, 40],
+              iconAnchor: [20, 40],
+              popupAnchor: [0, -40],
+            })}
+            >
             <Popup>
               <div className="font-semibold">Delivery Address</div>
               <div className="text-sm">{deliveryAddress.address}</div>
             </Popup>
-          </Marker>
+            </Marker>
         </MapContainer>
 
         {/* Debug panel - can be hidden in production */}
