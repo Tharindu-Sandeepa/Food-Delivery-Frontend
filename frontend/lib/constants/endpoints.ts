@@ -7,6 +7,6 @@ export const AUTH_ENDPOINTS = {
 };
 
 export const USER_ENDPOINTS = {
-  BASE: '/users',
+  BASE: "/users",
   BY_ID: (id: string) => `/users/${id}`,
 };

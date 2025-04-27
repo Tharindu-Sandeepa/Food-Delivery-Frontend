@@ -1,23 +1,146 @@
-"use client"
+"use client";
 
-import Image from "next/image"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Minus, Plus, Trash2 } from "lucide-react"
-import { useAppSelector, useAppDispatch } from "@/lib/store/hooks"
-import { selectCartItems, removeItem, updateQuantity } from "@/lib/store/cartSlice"
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Minus, Plus, Trash2 } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
+
+interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  image: string;
+  quantity: number;
+}
 
 export function CartList() {
-  const items = useAppSelector(selectCartItems)
-  const dispatch = useAppDispatch()
+  const [items, setItems] = useState<CartItem[]>([]);
 
-  const handleUpdateQuantity = (id: string, change: number) => {
-    dispatch(updateQuantity({ id, change }))
-  }
+  // Fetch cart items on mount
+  useEffect(() => {
+    const fetchCart = async () => {
+      const userId = localStorage.getItem("userId");
+      if (!userId) {
+        toast({
+          title: "Error",
+          description: "Please log in to view your cart.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-  const handleRemoveItem = (id: string) => {
-    dispatch(removeItem(id))
-  }
+      try {
+        const response = await fetch(
+          `http://localhost:3001/api/cart/${userId}`
+        );
+        if (!response.ok) {
+          throw new Error("Failed to fetch cart");
+        }
+        const data = await response.json();
+        setItems(data.items);
+      } catch (error) {
+        toast({
+          title: "Error",
+          description:
+            error instanceof Error ? error.message : "An error occurred",
+          variant: "destructive",
+        });
+      }
+    };
+    fetchCart();
+  }, []);
+
+  const handleUpdateQuantity = async (id: string, change: number) => {
+    const userId = localStorage.getItem("userId");
+    if (!userId) {
+      toast({
+        title: "Error",
+        description: "Please log in to update your cart.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const item = items.find((item) => item.id === id);
+    if (!item) return;
+
+    const newQuantity = item.quantity + change;
+
+    try {
+      const response = await fetch("http://localhost:3001/api/cart/update", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId, itemId: id, quantity: newQuantity }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update quantity");
+      }
+
+      const data = await response.json();
+      setItems(data.items);
+      toast({
+        title: "Success",
+        description: `Updated quantity for ${item.name}.`,
+      });
+      // Dispatch custom event to notify CartSummary
+      console.log("Dispatching cartUpdated event from CartList");
+      window.dispatchEvent(new CustomEvent("cartUpdated"));
+    } catch (error) {
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRemoveItem = async (id: string) => {
+    const userId = localStorage.getItem("userId");
+    if (!userId) {
+      toast({
+        title: "Error",
+        description: "Please log in to update your cart.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `http://localhost:3001/api/cart/${userId}/${id}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to remove item");
+      }
+
+      const data = await response.json();
+      setItems(data.items);
+      toast({
+        title: "Success",
+        description: "Item removed from cart.",
+      });
+      // Dispatch custom event to notify CartSummary
+      console.log("Dispatching cartUpdated event from CartList");
+      window.dispatchEvent(new CustomEvent("cartUpdated"));
+    } catch (error) {
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (items.length === 0) {
     return (
@@ -29,7 +152,7 @@ export function CartList() {
           </Button>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -39,7 +162,12 @@ export function CartList() {
           <CardContent className="p-4">
             <div className="flex gap-4">
               <div className="relative w-20 h-20 rounded-md overflow-hidden">
-                <Image src={item.image || "/placeholder.svg"} alt={item.name} fill className="object-cover" />
+                <Image
+                  src={item.image || "/placeholder.svg"}
+                  alt={item.name}
+                  fill
+                  className="object-cover"
+                />
               </div>
 
               <div className="flex-1">
@@ -84,5 +212,5 @@ export function CartList() {
         </Card>
       ))}
     </div>
-  )
+  );
 }
