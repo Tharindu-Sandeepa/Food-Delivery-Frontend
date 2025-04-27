@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react"
 import { MenuManagement } from "@/components/admin/menu-management"
 import { DashboardHeader } from "@/components/dashboard-header"
-import { useAuth } from "@/lib/hooks/useAuth"
+import { useAuth } from "@/hooks/useAuth"
 
 
 export default function MenuManagementPage() {

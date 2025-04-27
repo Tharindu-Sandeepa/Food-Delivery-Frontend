@@ -4,12 +4,9 @@ export const AUTH_ENDPOINTS = {
   LOGIN: '/users/login',
   REGISTER: '/users/register',
   ME: '/users/me',
-  LOGOUT: '/users/logout',
 };
 
 export const USER_ENDPOINTS = {
   BASE: '/users',
   BY_ID: (id: string) => `/users/${id}`,
-  UPDATE_DETAILS: '/users/updatedetails',
-  UPDATE_PASSWORD: '/users/updatepassword',
 };

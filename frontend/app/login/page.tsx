@@ -1,60 +1,110 @@
-"use client"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { useAuth } from "../../lib/hooks/useAuth"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { LoginFormData, RegisterFormData } from "../../lib/types/auth"
-import { useForm } from "react-hook-form"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { LoginFormData, RegisterFormData } from "@/lib/types/auth";
+import { useForm, Controller } from "react-hook-form";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "@/components/ui/use-toast";
+import { Mail } from "lucide-react";
+
+interface ForgotPasswordFormData {
+  email: string;
+}
 
 export default function LoginPage() {
-  const router = useRouter()
-  const { login, register, loading, error } = useAuth()
-  const [activeTab, setActiveTab] = useState<"login" | "register">("login")
+  const router = useRouter();
+  const { signIn, signUp, forgotPassword, loading, error } = useAuth();
+  const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
 
   // Login form
-  const { 
-    register: loginRegister, 
+  const {
+    register: loginRegister,
     handleSubmit: handleLoginSubmit,
-    formState: { errors: loginErrors }
-  } = useForm<LoginFormData>()
+    formState: { errors: loginErrors },
+  } = useForm<LoginFormData>();
 
   // Register form
-  const { 
-    register: registerRegister, 
+  const {
+    register: registerRegister,
     handleSubmit: handleRegisterSubmit,
+    control,
     watch,
-    formState: { errors: registerErrors }
+    formState: { errors: registerErrors },
   } = useForm<RegisterFormData>({
     defaultValues: {
-      role: "customer"
-    }
-  })
+      role: "customer",
+    },
+  });
 
-  const selectedRole = watch("role")
+  // Forgot password form
+  const {
+    register: forgotRegister,
+    handleSubmit: handleForgotSubmit,
+    formState: { errors: forgotErrors },
+    reset: resetForgotForm,
+  } = useForm<ForgotPasswordFormData>();
+
+  const selectedRole = watch("role");
 
   const onLogin = async (data: LoginFormData) => {
     try {
-      await login(data.email, data.password)
-      router.push("/") // Will be redirected based on role via middleware
+      const response = await signIn(data);
+      const { role } = response.user;
+      switch (role) {
+        case "customer":
+          router.push("/");
+          break;
+        case "admin":
+          router.push("/admin-system");
+          break;
+        case "restaurant":
+          router.push("/admin");
+          break;
+        case "delivery":
+          router.push("/delivery");
+          break;
+        default:
+          console.warn(`Unknown role: ${role}`);
+          router.push("/");
+      }
     } catch (err) {
-      console.error("Login error:", err)
+      console.error("Login error:", err);
     }
-  }
+  };
 
   const onRegister = async (data: RegisterFormData) => {
+    console.log("Register data:", data); // Debug log
     try {
-      await register(data)
-      router.push("/") // Will be redirected based on role via middleware
+      await signUp(data);
+      router.push("/");
     } catch (err) {
-      console.error("Registration error:", err)
+      console.error("Registration error:", err);
     }
-  }
+  };
+
+  const onForgotPassword = async (data: ForgotPasswordFormData) => {
+    try {
+      await forgotPassword(data.email);
+      setIsForgotPasswordOpen(false);
+      resetForgotForm();
+      toast({
+        title: "Success",
+        description: "A password reset email has been sent to your email address.",
+      });
+    } catch (err) {
+      console.error("Forgot password error:", err);
+    }
+  };
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-background p-4">
@@ -64,13 +114,11 @@ export default function LoginPage() {
             {activeTab === "login" ? "Welcome Back" : "Create Account"}
           </CardTitle>
           <CardDescription>
-            {activeTab === "login" 
-              ? "Sign in to continue" 
-              : "Join our food community"}
+            {activeTab === "login" ? "Sign in to continue" : "Join our food community"}
           </CardDescription>
         </CardHeader>
 
-        <Tabs 
+        <Tabs
           value={activeTab}
           onValueChange={(val) => setActiveTab(val as "login" | "register")}
           className="w-full"
@@ -108,18 +156,28 @@ export default function LoginPage() {
                   <Input
                     id="login-password"
                     type="password"
-                    {...loginRegister("password", { 
+                    {...loginRegister("password", {
                       required: "Password is required",
                       minLength: {
                         value: 6,
-                        message: "Password must be at least 6 characters"
-                      }
+                        message: "Password must be at least 6 characters",
+                      },
                     })}
                     placeholder="••••••••"
                   />
                   {loginErrors.password && (
                     <p className="text-sm text-destructive">{loginErrors.password.message}</p>
                   )}
+                </div>
+                <div className="text-right">
+                  <Button
+                    variant="link"
+                    type="button"
+                    className="text-sm text-primary"
+                    onClick={() => setIsForgotPasswordOpen(true)}
+                  >
+                    Forgot Password?
+                  </Button>
                 </div>
               </CardContent>
               <CardContent>
@@ -153,12 +211,12 @@ export default function LoginPage() {
                   <Input
                     id="register-email"
                     type="email"
-                    {...registerRegister("email", { 
+                    {...registerRegister("email", {
                       required: "Email is required",
                       pattern: {
                         value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                        message: "Invalid email address"
-                      }
+                        message: "Invalid email address",
+                      },
                     })}
                     placeholder="your@email.com"
                   />
@@ -173,12 +231,12 @@ export default function LoginPage() {
                   <Input
                     id="register-password"
                     type="password"
-                    {...registerRegister("password", { 
+                    {...registerRegister("password", {
                       required: "Password is required",
                       minLength: {
                         value: 6,
-                        message: "Password must be at least 6 characters"
-                      }
+                        message: "Password must be at least 6 characters",
+                      },
                     })}
                     placeholder="••••••••"
                   />
@@ -193,12 +251,12 @@ export default function LoginPage() {
                   <Input
                     id="register-phone"
                     type="tel"
-                    {...registerRegister("phone", { 
+                    {...registerRegister("phone", {
                       required: "Phone number is required",
                       pattern: {
                         value: /^\+?\d{10,15}$/,
-                        message: "Invalid phone number"
-                      }
+                        message: "Invalid phone number",
+                      },
                     })}
                     placeholder="+1234567890"
                   />
@@ -210,18 +268,29 @@ export default function LoginPage() {
                 {/* Role Selector */}
                 <div className="space-y-2">
                   <Label htmlFor="register-role">Register As</Label>
-                  <Select
-                    {...registerRegister("role", { required: "Role is required" })}
-                  >
-                    <SelectTrigger id="register-role">
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="customer">Customer</SelectItem>
-                      <SelectItem value="restaurant">Restaurant</SelectItem>
-                      <SelectItem value="delivery">Delivery</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    name="role"
+                    control={control}
+                    rules={{ required: "Role is required" }}
+                    render={({ field }) => (
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <SelectTrigger id="register-role">
+                          <SelectValue placeholder="Select role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="customer">Customer</SelectItem>
+                          <SelectItem value="restaurant">Restaurant</SelectItem>
+                          <SelectItem value="delivery">Delivery</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {registerErrors.role && (
+                    <p className="text-sm text-destructive">{registerErrors.role.message}</p>
+                  )}
                 </div>
 
                 {/* Address - Conditionally shown for customer/delivery */}
@@ -230,34 +299,16 @@ export default function LoginPage() {
                     <Label htmlFor="register-address">Address</Label>
                     <Input
                       id="register-address"
-                      {...registerRegister("address", { 
-                        required: selectedRole === "customer" || selectedRole === "delivery" 
-                          ? "Address is required" 
-                          : false
+                      {...registerRegister("address", {
+                        required:
+                          selectedRole === "customer" || selectedRole === "delivery"
+                            ? "Address is required"
+                            : false,
                       })}
                       placeholder="123 Main St, City"
                     />
                     {registerErrors.address && (
                       <p className="text-sm text-destructive">{registerErrors.address.message}</p>
-                    )}
-                  </div>
-                )}
-
-                {/* Restaurant ID - Conditionally shown for restaurant */}
-                {selectedRole === "restaurant" && (
-                  <div className="space-y-2">
-                    <Label htmlFor="register-restaurantId">Restaurant ID</Label>
-                    <Input
-                      id="register-restaurantId"
-                      {...registerRegister("restaurantId", { 
-                        required: selectedRole === "restaurant" 
-                          ? "Restaurant ID is required" 
-                          : false
-                      })}
-                      placeholder="Restaurant identifier"
-                    />
-                    {registerErrors.restaurantId && (
-                      <p className="text-sm text-destructive">{registerErrors.restaurantId.message}</p>
                     )}
                   </div>
                 )}
@@ -270,7 +321,50 @@ export default function LoginPage() {
             </form>
           </TabsContent>
         </Tabs>
+
+        {/* Forgot Password Dialog */}
+        <Dialog open={isForgotPasswordOpen} onOpenChange={setIsForgotPasswordOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reset Password</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleForgotSubmit(onForgotPassword)}>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="forgot-email">Email</Label>
+                  <Input
+                    id="forgot-email"
+                    type="email"
+                    {...forgotRegister("email", {
+                      required: "Email is required",
+                      pattern: {
+                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                        message: "Invalid email address",
+                      },
+                    })}
+                    placeholder="your@email.com"
+                  />
+                  {forgotErrors.email && (
+                    <p className="text-sm text-destructive">{forgotErrors.email.message}</p>
+                  )}
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => setIsForgotPasswordOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? "Sending..." : "Send Reset Email"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </Card>
     </div>
-  )
+  );
 }
