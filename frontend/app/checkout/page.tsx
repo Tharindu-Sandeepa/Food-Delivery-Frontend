@@ -19,7 +19,7 @@ interface CartItem {
 }
 
 interface Restaurant {
-  _id: string;
+  id: string;
   name: string;
   address: string;
   location: {
@@ -141,7 +141,7 @@ export default function CheckoutPage() {
       const orderPayload = {
         orderId,
         customerId: userId,
-        restaurantId: restaurant._id,
+        restaurantId: restaurant.id,
         restaurantName: restaurant.name,
         items: cartItems.map((item) => ({
           id: item.id,
