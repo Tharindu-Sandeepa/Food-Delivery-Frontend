@@ -1,35 +1,72 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { OrderList } from "@/components/order-list"
-import { DollarSign, ShoppingBag, Users, TrendingUp } from "lucide-react"
+"use client";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { OrderList } from "@/components/order-list";
+import { DollarSign, ShoppingBag, Users, TrendingUp } from "lucide-react";
+
+interface OrderItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+interface Address {
+  lat: number;
+  lng: number;
+  address: string;
+}
 
 interface Order {
-  id: string
-  restaurantId: string
-  restaurantName: string
-  items: Array<{ id: string; name: string; price: number; quantity: number }>
-  status: "pending" | "preparing" | "delivering" | "completed" | "cancelled"
-  total: number
-  createdAt: string
-  deliveryAddress: string
-  deliveryPersonId?: string
+  _id: string;
+  orderId: string;
+  restaurantId: string;
+  restaurantName: string;
+  items: OrderItem[];
+  status:
+    | "pending"
+    | "preparing"
+    | "ready"
+    | "assigned"
+    | "delivering"
+    | "completed"
+    | "cancelled";
+  total: number;
+  createdAt: string;
+  deliveryAddress: Address;
+  restaurantLocation: Address;
+  deliveryPersonId?: string;
+  deliveryPersonName?: string;
+  paymentMethod?: string;
+  contactNumber?: string;
 }
 
 interface AdminDashboardProps {
-  orders: Order[]
+  orders: Order[];
 }
 
 export function AdminDashboard({ orders }: AdminDashboardProps) {
   // Calculate stats
-  const totalOrders = orders.length
-  const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0)
-  const totalCustomers = new Set(orders.map((order) => order.id.slice(-4))).size // Mock unique customers
+  const totalOrders = orders.length;
+  const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+  const totalCustomers = new Set(orders.map((order) => order.orderId.slice(-4))).size; // Mock unique customers
 
-  // Filter orders by status
-  const pendingOrders = orders.filter((order) => order.status === "pending")
-  const preparingOrders = orders.filter((order) => order.status === "preparing")
-  const deliveringOrders = orders.filter((order) => order.status === "delivering")
-  const completedOrders = orders.filter((order) => order.status === "completed")
+  // Get the most recent order for each status
+  const getMostRecentOrder = (status: Order["status"]) => {
+    return orders
+      .filter((order) => order.status === status)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+  };
+
+  const recentOrders = {
+    pending: getMostRecentOrder("pending"),
+    preparing: getMostRecentOrder("preparing"),
+    ready: getMostRecentOrder("ready"),
+    assigned: getMostRecentOrder("assigned"),
+    delivering: getMostRecentOrder("delivering"),
+    completed: getMostRecentOrder("completed"),
+  };
 
   return (
     <div className="space-y-6">
@@ -93,27 +130,47 @@ export function AdminDashboard({ orders }: AdminDashboardProps) {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="pending">
-            <TabsList className="grid grid-cols-4 mb-4">
-              <TabsTrigger value="pending">Pending ({pendingOrders.length})</TabsTrigger>
-              <TabsTrigger value="preparing">Preparing ({preparingOrders.length})</TabsTrigger>
-              <TabsTrigger value="delivering">Delivering ({deliveringOrders.length})</TabsTrigger>
-              <TabsTrigger value="completed">Completed ({completedOrders.length})</TabsTrigger>
+            <TabsList className="grid grid-cols-6 mb-4">
+              <TabsTrigger value="pending">
+                Pending ({orders.filter((o) => o.status === "pending").length})
+              </TabsTrigger>
+              <TabsTrigger value="preparing">
+                Preparing ({orders.filter((o) => o.status === "preparing").length})
+              </TabsTrigger>
+              <TabsTrigger value="ready">
+                Ready ({orders.filter((o) => o.status === "ready").length})
+              </TabsTrigger>
+              <TabsTrigger value="assigned">
+                Assigned ({orders.filter((o) => o.status === "assigned").length})
+              </TabsTrigger>
+              <TabsTrigger value="delivering">
+                Delivering ({orders.filter((o) => o.status === "delivering").length})
+              </TabsTrigger>
+              <TabsTrigger value="completed">
+                Completed ({orders.filter((o) => o.status === "completed").length})
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="pending">
-              <OrderList orders={pendingOrders} />
+              <OrderList orders={recentOrders.pending ? [recentOrders.pending] : []} />
             </TabsContent>
             <TabsContent value="preparing">
-              <OrderList orders={preparingOrders} />
+              <OrderList orders={recentOrders.preparing ? [recentOrders.preparing] : []} />
+            </TabsContent>
+            <TabsContent value="ready">
+              <OrderList orders={recentOrders.ready ? [recentOrders.ready] : []} />
+            </TabsContent>
+            <TabsContent value="assigned">
+              <OrderList orders={recentOrders.assigned ? [recentOrders.assigned] : []} />
             </TabsContent>
             <TabsContent value="delivering">
-              <OrderList orders={deliveringOrders} />
+              <OrderList orders={recentOrders.delivering ? [recentOrders.delivering] : []} />
             </TabsContent>
             <TabsContent value="completed">
-              <OrderList orders={completedOrders} />
+              <OrderList orders={recentOrders.completed ? [recentOrders.completed] : []} />
             </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

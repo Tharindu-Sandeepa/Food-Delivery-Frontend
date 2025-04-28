@@ -218,7 +218,7 @@ export function DeliveryMap({ order }: DeliveryMapProps) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div className="md:col-span-2">
+      <div className="relative md:col-span-2 z-20">
         <Card className="h-full">
           <CardHeader>
             <CardTitle>Live Delivery Tracking</CardTitle>

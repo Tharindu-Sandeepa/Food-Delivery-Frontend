@@ -56,39 +56,59 @@ export default function LoginPage() {
 
   const selectedRole = watch("role");
 
+  // Reusable function for role-based redirection
+  const redirectByRole = (role: string) => {
+    switch (role) {
+      case "customer":
+        router.push("/");
+        break;
+      case "admin":
+        router.push("/admin-system");
+        break;
+      case "restaurant":
+        router.push("/admin");
+        break;
+      case "delivery":
+        router.push("/delivery");
+        break;
+      default:
+        console.warn(`Unknown role: ${role}`);
+        router.push("/");
+    }
+  };
+
   const onLogin = async (data: LoginFormData) => {
     try {
       const response = await signIn(data);
       const { role } = response.user;
-      switch (role) {
-        case "customer":
-          router.push("/");
-          break;
-        case "admin":
-          router.push("/admin-system");
-          break;
-        case "restaurant":
-          router.push("/admin");
-          break;
-        case "delivery":
-          router.push("/delivery");
-          break;
-        default:
-          console.warn(`Unknown role: ${role}`);
-          router.push("/");
-      }
-    } catch (err) {
+      redirectByRole(role);
+    } catch (err: any) {
       console.error("Login error:", err);
+      toast({
+        title: "Login Failed",
+        description: err.response?.data?.error || "Unable to connect to the server. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
   const onRegister = async (data: RegisterFormData) => {
-    console.log("Register data:", data); // Debug log
+    console.log("Register data:", data);
     try {
-      await signUp(data);
-      router.push("/");
-    } catch (err) {
+      const response = await signUp(data);
+      const { role } = response.user;
+      toast({
+        title: "Success",
+        description: "Account created successfully!",
+      });
+      redirectByRole(role);
+    } catch (err: any) {
       console.error("Registration error:", err);
+      toast({
+        title: "Registration Failed",
+        description: err.response?.data?.error || "Unable to connect to the server. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -101,8 +121,13 @@ export default function LoginPage() {
         title: "Success",
         description: "A password reset email has been sent to your email address.",
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Forgot password error:", err);
+      toast({
+        title: "Error",
+        description: err.response?.data?.error || "Failed to send reset email.",
+        variant: "destructive",
+      });
     }
   };
 

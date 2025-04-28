@@ -174,10 +174,10 @@ export default function Home() {
             <p>Loading user...</p>
           ) : user ? (
             <div className="flex items-center gap-4">
-              <p>Welcome, {user.name}!</p>
-              <Button variant="outline" onClick={logout}>
+              {/* <p>Welcome, {user.name}!</p> */}
+              {/* <Button variant="outline" onClick={logout}>
                 Logout
-              </Button>
+              </Button> */}
             </div>
           ) : (
             <Button

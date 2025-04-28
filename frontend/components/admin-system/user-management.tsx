@@ -366,9 +366,9 @@ export function UserManagement() {
 
   const getStatusBadge = (isActive: boolean) => {
     return isActive ? (
-      <Badge className="bg-green-500">Active</Badge>
+      <Badge className="bg-green-500" aria-label="User is active">Active</Badge>
     ) : (
-      <Badge variant="destructive">Blocked</Badge>
+      <Badge variant="destructive" aria-label="User is blocked">Blocked</Badge>
     );
   };
 
@@ -382,6 +382,8 @@ export function UserManagement() {
     (user) =>
       user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.phone.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (user.address?.toLowerCase().includes(searchQuery.toLowerCase()) || "") ||
       user.role.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -405,123 +407,139 @@ export function UserManagement() {
 
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead className="w-[80px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell>
-                      <Skeleton className="h-4 w-[150px]" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-[200px]" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-[100px]" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-[80px]" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-[120px]" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-[40px]" />
+          <div className="overflow-x-auto">
+            <Table className="min-w-full">
+              <TableHeader>
+                <TableRow>
+                  <TableHead scope="col">Name</TableHead>
+                  <TableHead scope="col">Email</TableHead>
+                  <TableHead scope="col">Phone</TableHead>
+                  <TableHead scope="col">Address</TableHead>
+                  <TableHead scope="col">Role</TableHead>
+                  <TableHead scope="col">Status</TableHead>
+                  <TableHead scope="col">Created</TableHead>
+                  <TableHead scope="col" className="w-[80px] text-center">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell>
+                        <Skeleton className="h-4 w-[150px]" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-[200px]" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-[120px]" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-[250px]" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-[100px]" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-[80px]" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-[120px]" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-[40px]" />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : filteredUsers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center">
+                      No users found
                     </TableCell>
                   </TableRow>
-                ))
-              ) : filteredUsers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center">
-                    No users found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="capitalize">
-                        {user.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{getStatusBadge(user.isActive)}</TableCell>
-                    <TableCell>
-                      {new Date(user.createdAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Actions</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setIsEditDialogOpen(true);
-                            }}
-                          >
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setIsRoleDialogOpen(true);
-                            }}
-                          >
-                            <Shield className="mr-2 h-4 w-4" />
-                            Change Role
-                          </DropdownMenuItem>
-                          {user.isActive ? (
+                ) : (
+                  filteredUsers.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium" scope="row">{user.name}</TableCell>
+                      <TableCell className="max-w-[200px] truncate">{user.email}</TableCell>
+                      <TableCell>{user.phone}</TableCell>
+                      <TableCell className="max-w-[250px] truncate">{user.address || "N/A"}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="capitalize" aria-label={`Role: ${user.role}`}>
+                          {user.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{getStatusBadge(user.isActive)}</TableCell>
+                      <TableCell>
+                        {new Date(user.createdAt).toLocaleDateString("en-US", {
+                          month: "2-digit",
+                          day: "2-digit",
+                          year: "numeric",
+                        })}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" aria-label="User actions">
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Actions</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
                             <DropdownMenuItem
                               onClick={() => {
                                 setSelectedUser(user);
-                                setIsBlockDialogOpen(true);
+                                setIsEditDialogOpen(true);
                               }}
                             >
-                              <UserX className="mr-2 h-4 w-4" />
-                              Block User
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit Details
                             </DropdownMenuItem>
-                          ) : (
                             <DropdownMenuItem
-                              onClick={() => handleStatusChange(user.id, true)}
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setIsRoleDialogOpen(true);
+                              }}
                             >
-                              <UserCheck className="mr-2 h-4 w-4" />
-                              Activate User
+                              <Shield className="mr-2 h-4 w-4" />
+                              Change Role
                             </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setIsDeleteDialogOpen(true);
-                            }}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete User
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                            {user.isActive ? (
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedUser(user);
+                                  setIsBlockDialogOpen(true);
+                                }}
+                              >
+                                <UserX className="mr-2 h-4 w-4" />
+                                Block User
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem
+                                onClick={() => handleStatusChange(user.id, true)}
+                              >
+                                <UserCheck className="mr-2 h-4 w-4" />
+                                Activate User
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setIsDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete User
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -536,6 +554,7 @@ export function UserManagement() {
             size="sm"
             onClick={() => handlePageChange(pagination.page - 1)}
             disabled={pagination.page <= 1 || loading}
+            aria-label="Previous page"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -544,6 +563,7 @@ export function UserManagement() {
             size="sm"
             onClick={() => handlePageChange(pagination.page + 1)}
             disabled={pagination.page >= pagination.pages || loading}
+            aria-label="Next page"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -567,9 +587,11 @@ export function UserManagement() {
                 value={editForm.name}
                 onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                 placeholder="Enter name"
+                aria-invalid={!!editErrors.name}
+                aria-describedby={editErrors.name ? "name-error" : undefined}
               />
               {editErrors.name && (
-                <p className="text-sm text-destructive">{editErrors.name}</p>
+                <p id="name-error" className="text-sm text-destructive">{editErrors.name}</p>
               )}
             </div>
             <div className="space-y-2">
@@ -580,9 +602,11 @@ export function UserManagement() {
                 value={editForm.email}
                 onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
                 placeholder="Enter email"
+                aria-invalid={!!editErrors.email}
+                aria-describedby={editErrors.email ? "email-error" : undefined}
               />
               {editErrors.email && (
-                <p className="text-sm text-destructive">{editErrors.email}</p>
+                <p id="email-error" className="text-sm text-destructive">{editErrors.email}</p>
               )}
             </div>
             <div className="space-y-2">
@@ -593,9 +617,11 @@ export function UserManagement() {
                 value={editForm.phone}
                 onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
                 placeholder="Enter phone number"
+                aria-invalid={!!editErrors.phone}
+                aria-describedby={editErrors.phone ? "phone-error" : undefined}
               />
               {editErrors.phone && (
-                <p className="text-sm text-destructive">{editErrors.phone}</p>
+                <p id="phone-error" className="text-sm text-destructive">{editErrors.phone}</p>
               )}
             </div>
             <div className="space-y-2">
@@ -605,9 +631,11 @@ export function UserManagement() {
                 value={editForm.address}
                 onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
                 placeholder="Enter address"
+                aria-invalid={!!editErrors.address}
+                aria-describedby={editErrors.address ? "address-error" : undefined}
               />
               {editErrors.address && (
-                <p className="text-sm text-destructive">{editErrors.address}</p>
+                <p id="address-error" className="text-sm text-destructive">{editErrors.address}</p>
               )}
             </div>
           </div>
@@ -646,9 +674,11 @@ export function UserManagement() {
                 value={addForm.name}
                 onChange={(e) => setAddForm({ ...addForm, name: e.target.value })}
                 placeholder="Enter name"
+                aria-invalid={!!addErrors.name}
+                aria-describedby={addErrors.name ? "add-name-error" : undefined}
               />
               {addErrors.name && (
-                <p className="text-sm text-destructive">{addErrors.name}</p>
+                <p id="add-name-error" className="text-sm text-destructive">{addErrors.name}</p>
               )}
             </div>
             <div className="space-y-2">
@@ -659,9 +689,11 @@ export function UserManagement() {
                 value={addForm.email}
                 onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
                 placeholder="Enter email"
+                aria-invalid={!!addErrors.email}
+                aria-describedby={addErrors.email ? "add-email-error" : undefined}
               />
               {addErrors.email && (
-                <p className="text-sm text-destructive">{addErrors.email}</p>
+                <p id="add-email-error" className="text-sm text-destructive">{addErrors.email}</p>
               )}
             </div>
             <div className="space-y-2">
@@ -672,9 +704,11 @@ export function UserManagement() {
                 value={addForm.phone}
                 onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })}
                 placeholder="Enter phone number"
+                aria-invalid={!!addErrors.phone}
+                aria-describedby={addErrors.phone ? "add-phone-error" : undefined}
               />
               {addErrors.phone && (
-                <p className="text-sm text-destructive">{addErrors.phone}</p>
+                <p id="add-phone-error" className="text-sm text-destructive">{addErrors.phone}</p>
               )}
             </div>
             <div className="space-y-2">
@@ -683,7 +717,7 @@ export function UserManagement() {
                 value={addForm.role}
                 onValueChange={(value: UserRole) => setAddForm({ ...addForm, role: value })}
               >
-                <SelectTrigger>
+                <SelectTrigger aria-label="Select user role">
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
                 <SelectContent>
@@ -694,7 +728,7 @@ export function UserManagement() {
                 </SelectContent>
               </Select>
               {addErrors.role && (
-                <p className="text-sm text-destructive">{addErrors.role}</p>
+                <p id="add-role-error" className="text-sm text-destructive">{addErrors.role}</p>
               )}
             </div>
             <div className="space-y-2">
@@ -704,9 +738,11 @@ export function UserManagement() {
                 value={addForm.address}
                 onChange={(e) => setAddForm({ ...addForm, address: e.target.value })}
                 placeholder="Enter address"
+                aria-invalid={!!addErrors.address}
+                aria-describedby={addErrors.address ? "add-address-error" : undefined}
               />
               {addErrors.address && (
-                <p className="text-sm text-destructive">{addErrors.address}</p>
+                <p id="add-address-error" className="text-sm text-destructive">{addErrors.address}</p>
               )}
             </div>
             <div className="space-y-2">
@@ -717,9 +753,11 @@ export function UserManagement() {
                 value={addForm.password}
                 onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
                 placeholder="Enter password"
+                aria-invalid={!!addErrors.password}
+                aria-describedby={addErrors.password ? "add-password-error" : undefined}
               />
               {addErrors.password && (
-                <p className="text-sm text-destructive">{addErrors.password}</p>
+                <p id="add-password-error" className="text-sm text-destructive">{addErrors.password}</p>
               )}
             </div>
           </div>
@@ -761,7 +799,7 @@ export function UserManagement() {
                   }
                 }}
               >
-                <SelectTrigger>
+                <SelectTrigger aria-label="Select user role">
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
                 <SelectContent>

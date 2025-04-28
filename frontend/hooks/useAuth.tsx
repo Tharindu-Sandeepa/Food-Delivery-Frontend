@@ -125,7 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsAuthenticated(true);
       localStorage.setItem("token", newToken);
       localStorage.setItem("user", JSON.stringify(updatedUser));
-      router.push("/dashboard");
+      router.push("/login");
       return response;
     } catch (err: any) {
       setError(err.response?.data?.error || "Failed to reset password");
