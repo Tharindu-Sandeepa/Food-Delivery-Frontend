@@ -33,7 +33,7 @@ export default function RestaurantOnboardingPage() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const addressInputRef = useRef<HTMLInputElement>(null)
 
-  // Initialize formData with email set to empty string initially
+  // Initialize formData with email set to empty string initially and default deliveryZones
   const [formData, setFormData] = useState<RestaurantFormData>({
     name: "",
     email: "",
@@ -44,7 +44,7 @@ export default function RestaurantOnboardingPage() {
       open: "09:00",
       close: "21:00"
     },
-    deliveryZones: "",
+    deliveryZones: "10001,98989",
     location: {
       longitude: 0,
       latitude: 0
@@ -62,7 +62,6 @@ export default function RestaurantOnboardingPage() {
         const parsedUser = storedUser ? JSON.parse(storedUser) : null
         console.log("Parsed user email:", parsedUser?.email)
         console.log("Parsed fffff user :", parsedUser?._id)
-
 
         if (!parsedUser?.email) {
           throw new Error("User email not found in local storage")
@@ -126,9 +125,6 @@ export default function RestaurantOnboardingPage() {
     if (!formData.address.trim()) {
       errors.address = "Address is required"
     }
-    if (!formData.deliveryZones.trim()) {
-      errors.deliveryZones = "Delivery zones are required"
-    }
     if (formData.location.latitude === 0 && formData.location.longitude === 0) {
       errors.location = "Please select a location on the map"
     }
@@ -156,7 +152,7 @@ export default function RestaurantOnboardingPage() {
         open: "09:00",
         close: "21:00"
       },
-      deliveryZones: "",
+      deliveryZones: "10001,98989",
       location: {
         longitude: 0,
         latitude: 0
@@ -178,7 +174,7 @@ export default function RestaurantOnboardingPage() {
         address: restaurant.address,
         cuisineType: restaurant.cuisineType,
         openingHours: restaurant.openingHours || { open: "09:00", close: "21:00" },
-        deliveryZones: restaurant.deliveryZones.join(", "),
+        deliveryZones: "10001,98989",
         location: restaurant.location || { latitude: 0, longitude: 0 },
         isAvailable: restaurant.isAvailable
       })
@@ -237,7 +233,7 @@ export default function RestaurantOnboardingPage() {
             open: "09:00",
             close: "21:00"
           },
-          deliveryZones: "",
+          deliveryZones: "10001,98989",
           location: {
             longitude: 0,
             latitude: 0
@@ -452,18 +448,6 @@ export default function RestaurantOnboardingPage() {
                   {formErrors.image && <p className="text-red-500 text-sm">{formErrors.image}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="deliveryZones">Delivery Zones (comma separated) *</Label>
-                  <Input
-                    id="deliveryZones"
-                    name="deliveryZones"
-                    value={formData.deliveryZones}
-                    onChange={handleInputChange}
-                    required
-                    className={formErrors.deliveryZones ? "border-red-500" : ""}
-                  />
-                  {formErrors.deliveryZones && <p className="text-red-500 text-sm">{formErrors.deliveryZones}</p>}
-                </div>
-                <div className="space-y-2">
                   <Label>Opening Hours *</Label>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
@@ -545,31 +529,6 @@ export default function RestaurantOnboardingPage() {
                     }
                   />
                   {formErrors.location && <p className="text-red-500 text-sm mt-1">{formErrors.location}</p>}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <Label htmlFor="latitude">Latitude</Label>
-                    <Input
-                      id="latitude"
-                      name="latitude"
-                      type="number"
-                      step="0.000001"
-                      value={formData.location.latitude}
-                      readOnly
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="longitude">Longitude</Label>
-                    <Input
-                      id="longitude"
-                      name="longitude"
-                      type="number"
-                      step="0.000001"
-                      value={formData.location.longitude}
-                      readOnly
-                    />
-                  </div>
                 </div>
 
                 <div className="space-y-1">
@@ -754,18 +713,6 @@ export default function RestaurantOnboardingPage() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="deliveryZones">Delivery Zones (comma separated) *</Label>
-                <Input
-                  id="deliveryZones"
-                  name="deliveryZones"
-                  value={formData.deliveryZones}
-                  onChange={handleInputChange}
-                  required
-                  className={formErrors.deliveryZones ? "border-red-500" : ""}
-                />
-                {formErrors.deliveryZones && <p className="text-red-500 text-sm">{formErrors.deliveryZones}</p>}
-              </div>
-              <div className="space-y-2">
                 <Label>Opening Hours *</Label>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
@@ -855,31 +802,6 @@ export default function RestaurantOnboardingPage() {
                   }
                 />
                 {formErrors.location && <p className="text-red-500 text-sm mt-1">{formErrors.location}</p>}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label htmlFor="latitude">Latitude</Label>
-                  <Input
-                    id="latitude"
-                    name="latitude"
-                    type="number"
-                    step="0.000001"
-                    value={formData.location.latitude}
-                    readOnly
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="longitude">Longitude</Label>
-                  <Input
-                    id="longitude"
-                    name="longitude"
-                    type="number"
-                    step="0.000001"
-                    value={formData.location.longitude}
-                    readOnly
-                  />
-                </div>
               </div>
 
               <div className="space-y-1">

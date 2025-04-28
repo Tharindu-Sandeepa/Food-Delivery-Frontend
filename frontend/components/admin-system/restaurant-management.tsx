@@ -295,10 +295,10 @@ export function RestaurantManagement({ restaurants: initialRestaurants = [] }: R
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <Button onClick={handleAddNew}>
+        {/* <Button onClick={handleAddNew}>
           <Plus className="h-4 w-4 mr-2" />
           Add Restaurant
-        </Button>
+        </Button> */}
       </div>
 
       <Card>

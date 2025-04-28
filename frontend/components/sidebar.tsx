@@ -71,7 +71,7 @@ export function Sidebar({ role }: SidebarProps) {
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
     {
       href: "/admin/restaurant",
-      label: "Restaurant Onboarding",
+      label: "My Restaurant",
       icon: Building2,
     },
     { href: "/admin/menu", label: "Menu Management", icon: UtensilsCrossed },
