@@ -201,7 +201,7 @@ export default function Home() {
         <section className="container mx-auto px-4 py-10" id="restaurants">
           <div className="space-y-6">
             <div className="flex flex-col space-y-4">
-              <h2 className="text-3xl font-bold">Find your favorite fojjjjod</h2>
+              <h2 className="text-3xl font-bold">Find your favorite food</h2>
               <p className="text-muted-foreground">Order food</p>
               {/* Search Bar */}
               <div className="relative max-w-md">
