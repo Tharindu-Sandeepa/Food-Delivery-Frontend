@@ -3,9 +3,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { MapPin } from "lucide-react";
 
 interface OrderItem {
   id: string;
@@ -14,17 +11,34 @@ interface OrderItem {
   quantity: number;
 }
 
+interface Address {
+  lat: number;
+  lng: number;
+  address: string;
+}
+
 interface Order {
-  id: string;
+  _id: string;
+  orderId: string;
   restaurantId: string;
   restaurantName: string;
   items: OrderItem[];
-  status: "pending" | "preparing" | "delivering" | "completed" | "cancelled";
+  status:
+    | "pending"
+    | "preparing"
+    | "ready"
+    | "assigned"
+    | "delivering"
+    | "completed"
+    | "cancelled";
   total: number;
   createdAt: string;
-  deliveryAddress: string;
+  deliveryAddress: Address;
+  restaurantLocation: Address;
   deliveryPersonId?: string;
-  deliveryId?: string;
+  deliveryPersonName?: string;
+  paymentMethod?: string;
+  contactNumber?: string;
 }
 
 interface OrderListProps {
@@ -38,6 +52,10 @@ export function OrderList({ orders }: OrderListProps) {
         return "bg-yellow-500";
       case "preparing":
         return "bg-blue-500";
+      case "ready":
+        return "bg-orange-500";
+      case "assigned":
+        return "bg-indigo-500";
       case "delivering":
         return "bg-purple-500";
       case "completed":
@@ -57,7 +75,7 @@ export function OrderList({ orders }: OrderListProps) {
     return (
       <Card>
         <CardContent className="p-6 text-center">
-          <p className="text-muted-foreground">You don't have any orders yet</p>
+          <p className="text-muted-foreground">No orders in this category</p>
         </CardContent>
       </Card>
     );
@@ -66,17 +84,17 @@ export function OrderList({ orders }: OrderListProps) {
   return (
     <div className="space-y-6">
       {orders.map((order) => (
-        <Card key={order.id}>
+        <Card key={order.orderId || order._id}>
           <CardHeader className="pb-2">
             <div className="flex justify-between items-start">
               <div>
                 <CardTitle>{order.restaurantName}</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Order #{order.id.slice(0, 8)} •{" "}
-                  {new Date(order.createdAt).toLocaleDateString()}
+                  Order #{order.orderId ? order.orderId.slice(0, 8) : "Unknown"} •{" "}
+                  {new Date(order.createdAt).toLocaleString()}
                 </p>
               </div>
-              <Badge className={getStatusColor(order.status) + " text-white"}>
+              <Badge className={`${getStatusColor(order.status)} text-white`}>
                 {formatStatus(order.status)}
               </Badge>
             </div>
@@ -102,17 +120,15 @@ export function OrderList({ orders }: OrderListProps) {
               </div>
 
               <div className="text-sm text-muted-foreground">
-                <p>Delivery to: {order.deliveryAddress}</p>
+                <p>Delivery to: {order.deliveryAddress.address}</p>
+                {order.deliveryPersonId && (
+                  <p>
+                    Driver: {order.deliveryPersonName || `#${order.deliveryPersonId.slice(0, 6)}`}
+                  </p>
+                )}
+                {order.contactNumber && <p>Contact Number: {order.contactNumber}</p>}
+                {order.paymentMethod && <p>Payment: {order.paymentMethod}</p>}
               </div>
-
-              {order.status === "delivering" && (
-                <Button asChild className="w-full sm:w-auto mt-2">
-                  <Link href={`/tracking/${order.deliveryId}`}>
-                    <MapPin className="mr-2 h-4 w-4" />
-                    Track Delivery
-                  </Link>
-                </Button>
-              )}
             </div>
           </CardContent>
         </Card>

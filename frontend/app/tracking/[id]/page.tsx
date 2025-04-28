@@ -68,7 +68,7 @@ export default function TrackingPage({
 
   return (
     <main className="container mx-auto px-4 py-6 min-h-[calc(100vh-4rem)]">
-      <div className="space-y-6">
+      <div className="relative space-y-6 z-10">
         <div>
           <h1 className="text-3xl font-bold">Track Your Delivery</h1>
           <p className="text-muted-foreground">

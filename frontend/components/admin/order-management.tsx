@@ -112,13 +112,16 @@ export function OrderManagement({ initOrders }: OrderManagementProps) {
     status: Order["status"]
   ) => {
     try {
-      const response = await fetch(`${BASE_URL_ORDERS}/api/orders/${orderId}/status`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status }),
-      });
+      const response = await fetch(
+        `${BASE_URL_ORDERS}/api/orders/${orderId}/status`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ status }),
+        }
+      );
 
       if (response.ok) {
         setOrders((prev) =>
@@ -216,7 +219,7 @@ export function OrderManagement({ initOrders }: OrderManagementProps) {
           </div>
 
           <div className="flex justify-between items-center pt-2">
-            <Select
+            {/* <Select
               value={order.status}
               onValueChange={(value) =>
                 updateOrderStatus(order.orderId, value as Order["status"])
@@ -234,7 +237,7 @@ export function OrderManagement({ initOrders }: OrderManagementProps) {
                 <SelectItem value="completed">Completed</SelectItem>
                 <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
-            </Select>
+            </Select> */}
 
             <div className="space-x-2">
               {order.status === "pending" && (
@@ -251,19 +254,19 @@ export function OrderManagement({ initOrders }: OrderManagementProps) {
               )}
               {order.status === "ready" && (
                 <Button onClick={() => handleMarkReady(order)}>
-                  Mark as Ready
+                  Assign Driver
                 </Button>
               )}
               {/* {order.status === "assigned" && (
                 <Button onClick={() => updateOrderStatus(order.orderId, "delivering")}>Start Delivery</Button>
               )} */}
-              {order.status === "delivering" && (
+              {/* {order.status === "delivering" && (
                 <Button
                   onClick={() => updateOrderStatus(order.orderId, "completed")}
                 >
                   Complete Delivery
                 </Button>
-              )}
+              )} */}
             </div>
           </div>
         </div>
@@ -360,7 +363,6 @@ export function OrderManagement({ initOrders }: OrderManagementProps) {
           )}
         </TabsContent>
       </Tabs>
-      *
       <AssignDriverDialog
         orderId={assigningOrder?.orderId || ""}
         open={!!assigningOrder}
