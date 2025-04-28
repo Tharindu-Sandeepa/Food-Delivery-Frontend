@@ -10,6 +10,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/use-toast";
 import { Users, Store, AlertTriangle, CheckCircle, XCircle, ShieldAlert } from "lucide-react";
 import { User as BackendUser } from "@/lib/types/user";
+import { Bar } from "react-chartjs-2";
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from "chart.js";
+import axios from "axios";
+
+// Register Chart.js components
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 interface User {
   id: string;
@@ -68,6 +74,9 @@ export function SystemAdminDashboard({ restaurants, pendingRestaurants }: System
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [restaurantCount, setRestaurantCount] = useState<number | null>(null);
+  const [restaurantLoading, setRestaurantLoading] = useState(true);
+  const [restaurantError, setRestaurantError] = useState<string | null>(null);
 
   // Fetch users on mount
   useEffect(() => {
@@ -82,7 +91,7 @@ export function SystemAdminDashboard({ restaurants, pendingRestaurants }: System
         setLoading(true);
         const response = await fetchUsers(token, {
           page: 1,
-          limit: 100, // Fetch up to 100 users to avoid pagination issues
+          limit: 100,
         });
         const mappedUsers = response.data.map(mapBackendUserToDashboardUser);
         setUsers(mappedUsers);
@@ -103,12 +112,109 @@ export function SystemAdminDashboard({ restaurants, pendingRestaurants }: System
     loadUsers();
   }, [token]);
 
-  // Calculate stats
+  // Fetch restaurant count on mount
+  useEffect(() => {
+    const loadRestaurantCount = async () => {
+      if (!token) {
+        setRestaurantError("Authentication token missing");
+        setRestaurantLoading(false);
+        return;
+      }
+
+      try {
+        setRestaurantLoading(true);
+        const response = await axios.get("http://localhost:3002/restaurants/", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        // Handle response: expect [Restaurant[]] directly
+        const count = Array.isArray(response.data) ? response.data.length : 0;
+        setRestaurantCount(count);
+        setRestaurantError(null);
+      } catch (err: any) {
+        console.error("Fetch restaurants error:", err);
+        console.error("Response:", err.response?.data); // Log full response for debugging
+        setRestaurantError(err.response?.data?.error || "Failed to fetch restaurants");
+        toast({
+          title: "Error",
+          description: err.response?.data?.error || "Failed to fetch restaurants",
+          variant: "destructive",
+        });
+      } finally {
+        setRestaurantLoading(false);
+      }
+    };
+
+    loadRestaurantCount();
+  }, [token]);
+
+  // Calculate user stats
   const totalUsers = users.length;
   const activeUsers = users.filter((user) => user.status === "active").length;
   const blockedUsers = users.filter((user) => user.status === "blocked").length;
 
-  const totalRestaurants = restaurants.length;
+  // Calculate user role distribution for chart
+  const userRoles = ["customer", "restaurant", "delivery", "admin"];
+  const roleCounts = userRoles.map(
+    (role) => users.filter((user) => user.role === role).length
+  );
+
+  // Chart data
+  const chartData = {
+    labels: userRoles.map((role) => role.charAt(0).toUpperCase() + role.slice(1)),
+    datasets: [
+      {
+        label: "Number of Users",
+        data: roleCounts,
+        backgroundColor: [
+          "rgba(75, 192, 192, 0.6)", // Customer
+          "rgba(255, 99, 132, 0.6)", // Restaurant
+          "rgba(54, 162, 235, 0.6)", // Delivery
+          "rgba(255, 206, 86, 0.6)", // Admin
+        ],
+        borderColor: [
+          "rgba(75, 192, 192, 1)",
+          "rgba(255, 99, 132, 1)",
+          "rgba(54, 162, 235, 1)",
+          "rgba(255, 206, 86, 1)",
+        ],
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  // Chart options
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: "top" as const,
+      },
+      title: {
+        display: true,
+        text: "User Role Distribution",
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: "Number of Users",
+        },
+      },
+      x: {
+        title: {
+          display: true,
+          text: "Role",
+        },
+      },
+    },
+  };
+
+  // Use fetched restaurant count, fallback to prop
+  const totalRestaurants = restaurantCount !== null ? restaurantCount : restaurants.length;
   const activeRestaurants = restaurants.filter((r) => !r.status || r.status === "active").length;
   const blockedRestaurants = restaurants.filter((r) => r.status === "blocked").length;
 
@@ -144,12 +250,18 @@ export function SystemAdminDashboard({ restaurants, pendingRestaurants }: System
             <Store className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="dashboard-stat">
-              <div className="dashboard-stat-value">{totalRestaurants}</div>
-              <p className="dashboard-stat-label">
-                {activeRestaurants} active, {blockedRestaurants} blocked
-              </p>
-            </div>
+            {restaurantLoading ? (
+              <Skeleton className="h-8 w-24" />
+            ) : restaurantError ? (
+              <p className="text-red-500 text-sm">Error loading restaurants</p>
+            ) : (
+              <div className="dashboard-stat">
+                <div className="dashboard-stat-value">{totalRestaurants}</div>
+                <p className="dashboard-stat-label">
+                  {activeRestaurants} active, {blockedRestaurants} blocked
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -230,30 +342,44 @@ export function SystemAdminDashboard({ restaurants, pendingRestaurants }: System
 
         <Card className="dashboard-card">
           <CardHeader>
-            <CardTitle>Pending Restaurant Approvals</CardTitle>
-            <CardDescription>Restaurants waiting for your review</CardDescription>
+            <CardTitle>Pending Restaurant Approvals & User Distribution</CardTitle>
+            <CardDescription>Restaurants awaiting review and user role breakdown</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {pendingRestaurants
-                .filter((restaurant) => restaurant.status === "pending")
-                .slice(0, 5)
-                .map((restaurant) => (
-                  <div key={restaurant.id} className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{restaurant.name}</p>
-                      <p className="text-sm text-muted-foreground">{restaurant.cuisine}</p>
+            <div className="space-y-6">
+              {/* Existing Pending Restaurants List */}
+              <div className="space-y-4">
+                {pendingRestaurants
+                  .filter((restaurant) => restaurant.status === "pending")
+                  .slice(0, 5)
+                  .map((restaurant) => (
+                    <div key={restaurant.id} className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">{restaurant.name}</p>
+                        <p className="text-sm text-muted-foreground">{restaurant.cuisine}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                          <XCircle className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" className="h-8 w-8 p-0">
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                      </Button>
-                      <Button size="sm" variant="outline" className="h-8 w-8 p-0">
-                        <XCircle className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+              </div>
+
+              {/* User Role Distribution Chart */}
+              {loading ? (
+                <Skeleton className="h-64 w-full" />
+              ) : error ? (
+                <p className="text-red-500 text-sm">Error loading user data for chart</p>
+              ) : (
+                <div className="h-64">
+                  <Bar data={chartData} options={chartOptions} />
+                </div>
+              )}
             </div>
           </CardContent>
           <CardFooter>
