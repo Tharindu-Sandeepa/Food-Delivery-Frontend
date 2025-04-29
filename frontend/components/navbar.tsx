@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, ShoppingCart, User, Bell, LogIn, LogOut } from "lucide-react";
+import { Menu, ShoppingCart, User, Bell, LogIn, LogOut, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/use-toast";
 
@@ -25,6 +25,22 @@ export function Navbar() {
     { href: "/cart", label: "Cart" },
     { href: "/orders", label: "Orders" },
   ];
+
+  // Function to get dashboard path based on role
+  const getDashboardPath = (role: string | undefined) => {
+    switch (role) {
+      case "admin":
+        return "/admin-system";
+      case "restaurant":
+        return "/admin";
+      case "delivery":
+        return "/delivery";
+      default:
+        return null;
+    }
+  };
+
+  const dashboardPath = isAuthenticated ? getDashboardPath(user?.role) : null;
 
   const handleLogout = async () => {
     try {
@@ -77,6 +93,14 @@ export function Navbar() {
                 </Link>
               ))}
               <div className="mt-4 pt-4 border-t">
+                {dashboardPath && (
+                  <Button asChild variant="outline" className="w-full justify-start mb-2">
+                    <Link href={dashboardPath}>
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
+                      Dashboard
+                    </Link>
+                  </Button>
+                )}
                 {isAuthenticated ? (
                   <>
                     <Button asChild variant="outline" className="w-full justify-start">
@@ -143,6 +167,14 @@ export function Navbar() {
 
           {isAuthenticated ? (
             <>
+              {dashboardPath && (
+                <Button variant="ghost" size="icon" asChild>
+                  <Link href={dashboardPath}>
+                    <LayoutDashboard className="h-5 w-5" />
+                    <span className="sr-only">Dashboard</span>
+                  </Link>
+                </Button>
+              )}
               <span className="text-sm font-medium text-muted-foreground hidden md:inline">
                 Hello, {userName}!
               </span>
