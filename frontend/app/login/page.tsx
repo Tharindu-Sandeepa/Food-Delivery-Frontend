@@ -101,7 +101,12 @@ export default function LoginPage() {
         title: "Success",
         description: "Account created successfully!",
       });
-      redirectByRole(role);
+      // Custom redirection for restaurant role after registration
+      if (role === "restaurant") {
+        router.push("/admin/restaurant");
+      } else {
+        redirectByRole(role);
+      }
     } catch (err: any) {
       console.error("Registration error:", err);
       toast({
