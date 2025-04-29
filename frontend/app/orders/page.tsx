@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { OrderList } from "@/components/order-list";
 import { toast } from "@/components/ui/use-toast";
+import { OrderListCustomer } from "@/components/customer/OrderListCustomer";
 
 interface OrderItem {
   id: string;
@@ -104,7 +104,7 @@ export default function OrdersPage() {
     <main className="container mx-auto px-4 py-4 min-h-[calc(100vh-4rem)]">
       <div className="space-y-6">
         <h1 className="text-3xl font-bold">Your Orders</h1>
-        <OrderList orders={orders} />
+        <OrderListCustomer orders={orders as any} />
       </div>
     </main>
   );
