@@ -1,38 +1,40 @@
-import { useEffect, useState } from 'react';
-import axios from 'axios';
-import { BASE_URL_DELIVERIES } from '@/lib/constants/Base_url';
-import { toast } from 'sonner';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { BASE_URL_DELIVERIES } from "@/lib/constants/Base_url";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 const DriverForm = () => {
   const [isRegistered, setIsRegistered] = useState(false);
   const [loading, setLoading] = useState(true);
-  const router = useRouter()
+  const router = useRouter();
   const [formData, setFormData] = useState({
-    name: '',
-    contactNumber: '',
-    vehicleType: '',
-    available: true
+    name: "",
+    contactNumber: "",
+    vehicleType: "",
+    available: true,
   });
 
   useEffect(() => {
     const checkDriverRegistration = async () => {
       try {
-        const userId = localStorage.getItem('userId');
+        const userId = localStorage.getItem("userId");
         if (!userId) {
-          console.error('No user ID found in localStorage');
+          console.error("No user ID found in localStorage");
           setLoading(false);
           return;
         }
-  
-        const response = await axios.get(`${BASE_URL_DELIVERIES}/api/drivers/${userId}`);
+
+        const response = await axios.get(
+          `${BASE_URL_DELIVERIES}/api/drivers/${userId}`
+        );
         if (response.data) {
           setIsRegistered(true);
           setFormData({
             name: response.data.name,
             contactNumber: response.data.contactNumber,
             vehicleType: response.data.vehicleType,
-            available: response.data.available
+            available: response.data.available,
           });
         }
       } catch (error) {
@@ -41,34 +43,34 @@ const DriverForm = () => {
           if (error.response?.status === 404) {
             setIsRegistered(false);
           } else {
-            console.error('Error checking driver registration:', error.message);
+            console.error("Error checking driver registration:", error.message);
           }
         } else {
           // Handle non-Axios errors
-          console.error('Unexpected error:', error);
+          console.error("Unexpected error:", error);
         }
       } finally {
         setLoading(false);
       }
     };
-  
+
     checkDriverRegistration();
   }, []);
 
-  const handleChange = (e :any) => {
+  const handleChange = (e: any) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
-  const handleSubmit = async (e : any) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
     try {
-      const userId = localStorage.getItem('userId');
+      const userId = localStorage.getItem("userId");
       if (!userId) {
-        alert('No user ID found. Please login first.');
+        alert("No user ID found. Please login first.");
         return;
       }
 
@@ -76,25 +78,28 @@ const DriverForm = () => {
         userId,
         ...formData,
         location: {
-          type: 'Point',
-          coordinates: [0, 0]
-        }
+          type: "Point",
+          coordinates: [0, 0],
+        },
       };
 
       if (isRegistered) {
-        await axios.put(`${BASE_URL_DELIVERIES}/api/drivers/${userId}`, payload);
-        toast.success('Driver information updated successfully!');
+        await axios.put(
+          `${BASE_URL_DELIVERIES}/api/drivers/${userId}`,
+          payload
+        );
+        toast.success("Driver information updated successfully!");
       } else {
         await axios.post(`${BASE_URL_DELIVERIES}/api/drivers`, payload);
-        toast.success('Driver registered successfully!');
+        toast.success("Driver registered successfully!");
         setIsRegistered(true);
-      //naviagte to the driver dashboard
-        router.push('/delivery');
-        
+        //refresh the brouser to show the new driver information
+
+        location.reload();
       }
     } catch (error) {
-      console.error('Error saving driver information:', error);
-      alert('Failed to save driver information. Please try again.');
+      console.error("Error saving driver information:", error);
+      alert("Failed to save driver information. Please try again.");
     }
   };
 
@@ -109,12 +114,15 @@ const DriverForm = () => {
   return (
     <div className="max-w-md mx-auto p-6 dashboard-card">
       <h2 className="text-2xl font-bold mb-6 text-center">
-        {isRegistered ? 'Edit Driver Profile' : 'Driver Registration'}
+        {isRegistered ? "Edit Driver Profile" : "Driver Registration"}
       </h2>
-      
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-muted-foreground mb-1">
+          <label
+            htmlFor="name"
+            className="block text-sm font-medium text-muted-foreground mb-1"
+          >
             Full Name
           </label>
           <input
@@ -129,7 +137,10 @@ const DriverForm = () => {
         </div>
 
         <div>
-          <label htmlFor="contactNumber" className="block text-sm font-medium text-muted-foreground mb-1">
+          <label
+            htmlFor="contactNumber"
+            className="block text-sm font-medium text-muted-foreground mb-1"
+          >
             Contact Number
           </label>
           <input
@@ -144,7 +155,10 @@ const DriverForm = () => {
         </div>
 
         <div>
-          <label htmlFor="vehicleType" className="block text-sm font-medium text-muted-foreground mb-1">
+          <label
+            htmlFor="vehicleType"
+            className="block text-sm font-medium text-muted-foreground mb-1"
+          >
             Vehicle Type
           </label>
           <select
@@ -172,7 +186,10 @@ const DriverForm = () => {
             onChange={handleChange}
             className="h-4 w-4 text-primary focus:ring-primary border rounded"
           />
-          <label htmlFor="available" className="ml-2 block text-sm text-muted-foreground">
+          <label
+            htmlFor="available"
+            className="ml-2 block text-sm text-muted-foreground"
+          >
             Available for deliveries
           </label>
         </div>
@@ -182,7 +199,7 @@ const DriverForm = () => {
             type="submit"
             className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-2 px-4 rounded-md transition-colors"
           >
-            {isRegistered ? 'Update Profile' : 'Register as Driver'}
+            {isRegistered ? "Update Profile" : "Register as Driver"}
           </button>
         </div>
       </form>
