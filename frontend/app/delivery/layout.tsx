@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { BASE_URL_DELIVERIES } from "@/lib/constants/Base_url";
 import axios from "axios";
 import DriverForm from "@/components/delivery/DriverRegistration";
+import { useRouter } from "next/navigation";
 
 export default function DeliveryLayout({
   children,
@@ -16,6 +17,7 @@ export default function DeliveryLayout({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRegistered, setIsRegistered] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const checkDriverRegistration = async () => {
@@ -24,7 +26,7 @@ export default function DeliveryLayout({
         if (!userId) {
           console.error("No user ID found in localStorage");
           setLoading(false);
-          return;
+          router.push("/login");
         }
 
         const response = await axios.get(

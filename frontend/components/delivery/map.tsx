@@ -10,6 +10,7 @@ import "leaflet/dist/leaflet.css";
 import { updateOrderStatus2 } from "@/lib/delivery-api";
 import io from "socket.io-client";
 import { BASE_URL_DELIVERIES } from "@/lib/constants/Base_url";
+import { useRouter } from "next/navigation";
 
 const icon = L.icon({
   iconUrl: "/images/delivery-bike.png",
@@ -23,6 +24,8 @@ interface DeliveryMapProps {
   order: {
     id: string;
     deliveryId: string;
+    orderId: string;
+    customerId: string;
     driverId: string;
     restaurantName: string;
     restaurantAddress?: Address;
@@ -59,6 +62,7 @@ export function DeliveryMap({ order }: DeliveryMapProps) {
   const [isStarted, setIsStarted] = useState(false);
   const [socket, setSocket] = useState<any | null>(null);
   const animationRef = useRef<NodeJS.Timeout | null>(null);
+  const navigate = useRouter();
 
   // Debugging
   useEffect(() => {
@@ -200,6 +204,21 @@ export function DeliveryMap({ order }: DeliveryMapProps) {
       order.driverId
     ).then(() => {
       setDelivered(true);
+      //send email to customer
+      fetch(`http://localhost:3006/api/v1/notifications/delivery`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          orderId: order.orderId,
+          userId: order.customerId,
+          status: status,
+        }),
+      });
+      setTimeout(() => {
+      navigate.push("/delivery");
+      }, 2000)
     });
   };
 

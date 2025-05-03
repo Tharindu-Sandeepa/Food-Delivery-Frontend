@@ -61,10 +61,13 @@ export default function DeliveryPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const deliveryPersonId = localStorage.getItem("userId");
+  //  const deliveryPersonId = localStorage.getItem("userId");
+
+  let deliveryPersonId;
 
   useEffect(() => {
     const fetchData = async () => {
+      deliveryPersonId = localStorage.getItem("userId");
       if (!deliveryPersonId) return;
 
       try {

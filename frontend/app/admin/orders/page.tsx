@@ -31,12 +31,14 @@ export default function OrderManagementPage() {
   const [initOrders, setInitOrders] = useState<Order[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const restaurantId = localStorage.getItem("userId");
-
-  console.log("Restaurant ID",restaurantId)
+  //const restaurantId = localStorage.getItem("userId");
+  let restaurantId;
+  
 
   useEffect(() => {
     const fetchInitOrders = async () => {
+     restaurantId = localStorage.getItem("userId");
+      console.log("Restaurant ID",restaurantId)
       if (!restaurantId) return
       
       setLoading(true)

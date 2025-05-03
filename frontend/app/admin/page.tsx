@@ -48,10 +48,12 @@ export default function AdminPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const restaurantId = localStorage.getItem("userId");
+  //const restaurantId = localStorage.getItem("userId");
+  let restaurantId;
 
   useEffect(() => {
     const fetchOrders = async () => {
+      restaurantId = localStorage.getItem("userId");
       if (!restaurantId) {
         setError("Restaurant ID not found");
         setLoading(false);

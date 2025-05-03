@@ -139,7 +139,7 @@ export function CustomerDeliveryMap({
     if (progress >= 98) {
       // Delay slightly to ensure delivery completion animation shows
       const timer = setTimeout(() => {
-        router.push(`/feedback/${deliveryId}`);
+        router.push(`/tracking/feedback/${deliveryId}`);
       }, 1500); // 1.5 second delay
 
       return () => clearTimeout(timer);

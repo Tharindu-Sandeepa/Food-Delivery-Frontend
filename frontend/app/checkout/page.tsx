@@ -218,6 +218,23 @@ export default function CheckoutPage() {
         method: "DELETE",
       });
 
+
+      //send email to customer and restaurant
+      await fetch("http://localhost:3006/api/v1/notifications/order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId, 
+          orderId, 
+          items: cartItems, 
+          total: subtotal, 
+          restaurantId: restaurant.id,
+          restaurantName: restaurant.name,        
+        }),
+      });
+
       // Redirect to orders page
       router.push("/orders");
     } catch (error) {
